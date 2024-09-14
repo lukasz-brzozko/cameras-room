@@ -6,7 +6,7 @@ import { PeerServer } from "peer";
 import { Server } from "socket.io";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
+const hostname = process.env.HOST;
 const PORTS = {
   server: 3000,
   peer: 9000,
@@ -14,6 +14,8 @@ const PORTS = {
 // when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port: PORTS.server });
 const handler = app.getRequestHandler();
+
+let peers: string[] = [];
 
 app.prepare().then(() => {
   const keyPath = path.join(__dirname, "certificates", "localhost-key.pem");
@@ -31,13 +33,16 @@ app.prepare().then(() => {
   io.on("connection", () => {
     console.log("connected socket");
   });
-  console.log({ certPath, keyPath });
 
   const peerServer = PeerServer({
-    port: PORTS.peer,
     host: hostname,
-    ssl: options,
     path: "/",
+    port: PORTS.peer,
+    ssl: options,
+    corsOptions: {
+      origin: [`https://${hostname}:${PORTS.server}`],
+      methods: ["GET", "POST"],
+    },
   });
 
   httpsServer
@@ -51,9 +56,13 @@ app.prepare().then(() => {
 
   peerServer.on("connection", (client) => {
     console.log("Peer connected:", client.getId());
+    peers.push(client.getId());
+    io.emit("peers", peers);
   });
 
   peerServer.on("disconnect", (client) => {
     console.log("Peer disconnected:", client.getId());
+    peers = peers.filter((peer) => peer != client.getId());
+    io.emit("peers", peers);
   });
 });
