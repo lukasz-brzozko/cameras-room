@@ -12,13 +12,14 @@ export default function Home() {
   const [transport, setTransport] = useState("N/A");
 
   useEffect(() => {
-    let stream: MediaStream;
+    let stream: MediaStream | undefined;
 
     window.navigator.mediaDevices
       .getUserMedia({
         video: { facingMode: "environment" },
       })
-      .then((videoStream) => (stream = videoStream));
+      .then((videoStream) => (stream = videoStream))
+      .catch(() => (stream = undefined));
 
     const userId = uuidv4();
 

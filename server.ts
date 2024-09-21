@@ -1,3 +1,4 @@
+import "dotenv/config";
 import next from "next";
 import fs from "node:fs";
 import { createServer } from "node:https";
@@ -5,14 +6,13 @@ import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
 
-const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOST;
-const PORTS = {
-  server: 3000,
-  peer: 9000,
-};
+const { NODE_ENV, HOST: hostname, PORT_PEER, PORT_SERVER } = process.env;
+const dev = NODE_ENV !== "production";
+const serverPort = Number(PORT_SERVER) || 3000;
+const peerPort = Number(PORT_PEER) || 9000;
+
 // when using middleware `hostname` and `port` must be provided below
-const app = next({ dev, hostname, port: PORTS.server });
+const app = next({ dev, hostname, port: serverPort });
 const handler = app.getRequestHandler();
 
 let peers: string[] = [];
@@ -37,10 +37,10 @@ app.prepare().then(() => {
   const peerServer = PeerServer({
     host: hostname,
     path: "/",
-    port: PORTS.peer,
+    port: peerPort,
     ssl: options,
     corsOptions: {
-      origin: [`https://${hostname}:${PORTS.server}`],
+      origin: [`https://${hostname}:${serverPort}`],
       methods: ["GET", "POST"],
     },
   });
@@ -50,8 +50,8 @@ app.prepare().then(() => {
       console.error(err);
       process.exit(1);
     })
-    .listen(PORTS.server, () => {
-      console.log(`> Ready on https://${hostname}:${PORTS.server}`);
+    .listen(serverPort, () => {
+      console.log(`> Ready on https://${hostname}:${serverPort}`);
     });
 
   peerServer.on("connection", (client) => {
