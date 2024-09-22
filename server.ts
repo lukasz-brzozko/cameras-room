@@ -30,8 +30,10 @@ app.prepare().then(() => {
 
   const io = new Server(httpsServer);
 
-  io.on("connection", () => {
+  io.on("connection", (socket) => {
     console.log("connected socket");
+
+    socket.on("track-ended", (data) => console.log(data));
   });
 
   const peerServer = PeerServer({
@@ -57,12 +59,13 @@ app.prepare().then(() => {
   peerServer.on("connection", (client) => {
     console.log("Peer connected:", client.getId());
     peers.push(client.getId());
-    io.emit("peers", peers);
+    client.send({ activePeers: peers });
+    // io.emit("peer-entered", client.getId());
   });
 
   peerServer.on("disconnect", (client) => {
     console.log("Peer disconnected:", client.getId());
     peers = peers.filter((peer) => peer != client.getId());
-    io.emit("peers", peers);
+    io.emit("peer-left", client.getId());
   });
 });

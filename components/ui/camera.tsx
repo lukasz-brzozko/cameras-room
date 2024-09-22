@@ -26,7 +26,7 @@ function Camera() {
   }, [stream]);
 
   return (
-    <video ref={videoRef} autoPlay muted>
+    <video className="w-full md:w-1/2" ref={videoRef} autoPlay muted>
       Znacznik video nie jest wspierany przez przeglądarkę.
     </video>
   );
