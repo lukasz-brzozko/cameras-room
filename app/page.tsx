@@ -1,52 +1,156 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "../socket";
 import { v4 as uuidv4 } from "uuid";
 import Camera from "@/components/ui/camera";
-import Peer from "peerjs";
+import Peer, { MediaConnection } from "peerjs";
+import { TPeerMessages } from "./page.types";
 
 export default function Home() {
   const [myPeer, setMyPeer] = useState<Peer>();
+  const [myPeerId] = useState(() => uuidv4());
+  const [localStream, setLocalStream] = useState<MediaStream>();
+  const [remoteStreams, setRemoteStreams] = useState<
+    { stream: MediaStream; peerId: string }[]
+  >([]);
+  const remoteVideosRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  //
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
 
-  useEffect(() => {
-    const init = async () => {
-      const createMediaStreamFake = () => {
-        return new MediaStream([
-          createEmptyVideoTrack({ width: 640, height: 480 }),
-        ]);
-      };
+  const getCamera = async () => {
+    let stream = createMediaStreamFake();
 
-      const createEmptyVideoTrack = ({ width, height }) => {
-        const canvas = Object.assign(document.createElement("canvas"), {
-          width,
-          height,
-        });
-        canvas.getContext("2d").fillRect(0, 0, width, height);
+    try {
+      stream = await window.navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+    } catch (err) {
+      console.log("Cannot access the camera");
+    } finally {
+      setLocalStream(stream);
+    }
 
-        const stream = canvas.captureStream();
-        const track = stream.getVideoTracks()[0];
+    return stream;
+  };
 
-        return Object.assign(track, { enabled: false });
-      };
+  const createEmptyVideoTrack = () => {
+    const canvas = document.createElement("canvas");
+    const stream = canvas.captureStream();
+    const [track] = stream.getVideoTracks();
 
-      let localStream = createMediaStreamFake();
+    return Object.assign(track, { enabled: false });
+  };
+
+  const createMediaStreamFake = () => {
+    return new MediaStream([createEmptyVideoTrack()]);
+  };
+
+  const onCallStream = ({
+    remoteStream,
+    otherPeer,
+  }: {
+    remoteStream: MediaStream;
+    otherPeer: string;
+  }) => {
+    console.log("got stream: ", { remoteStream });
+    console.log("setRemoteStreams");
+
+    setRemoteStreams((prevState) => [
+      ...prevState,
+      { stream: remoteStream, peerId: otherPeer },
+    ]);
+  };
+
+  const onPeers = async ({
+    peer,
+    peers,
+    localStream,
+  }: {
+    peers: string[];
+    peer: Peer;
+    localStream: MediaStream;
+  }) => {
+    peers.forEach((otherPeer) => {
+      if (otherPeer === myPeerId) return;
 
       try {
-        localStream = await window.navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-      } catch (err) {}
+        console.log(`calling ${otherPeer}`);
+        console.log("my stream: ", { localStream });
+        console.log({ peer });
 
-      const userId = uuidv4();
+        const call = peer.call(otherPeer, localStream);
+
+        console.log({ call });
+
+        call.on("stream", (remoteStream) =>
+          onCallStream({ remoteStream, otherPeer })
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  };
+
+  const onPeerMessage = ({
+    message: { activePeers },
+    peer,
+    localStream,
+  }: {
+    message: TPeerMessages;
+    peer: Peer;
+    localStream: MediaStream;
+  }) => {
+    if (activePeers) onPeers({ peers: activePeers, peer, localStream });
+  };
+
+  const onPeerOpen = ({
+    peer,
+    localStream,
+  }: {
+    peer: Peer;
+    localStream: MediaStream;
+  }) => {
+    peer.socket.on("message", (message) => {
+      onPeerMessage({ message, peer, localStream });
+    });
+  };
+
+  const onPeerCall = ({
+    call,
+    localStream,
+  }: {
+    call: MediaConnection;
+    localStream: MediaStream;
+  }) => {
+    console.log("someone call me");
+    console.log({ localStream });
+
+    call.answer(localStream);
+    call.on("stream", (remoteStream) =>
+      onCallStream({ remoteStream, otherPeer: call.peer })
+    );
+  };
+
+  const onPeerLeft = (peerId: string) => {
+    const filteredRemoteStreams = remoteStreams.filter(
+      ({ peerId: id }) => peerId !== id
+    );
+
+    setRemoteStreams(filteredRemoteStreams);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      const cameraStream = await getCamera();
 
       if (socket.connected) {
         onConnect();
       }
 
-      const peer = new Peer(userId, {
+      const peer = new Peer(myPeerId, {
         host: "/",
         path: "/",
         port: 9000,
@@ -54,50 +158,21 @@ export default function Home() {
       });
 
       setMyPeer(peer);
-      peer.on("open", (id) => {
-        peer.socket.on("message", ({ activePeers }) => {
-          console.log({ activePeers });
-          if (activePeers) onPeers(activePeers);
-        });
-      });
-      peer.on("call", (call) => {
-        console.log("someone call me");
-        console.log({ localStream });
 
-        call.answer(localStream);
+      peer.on("open", () => onPeerOpen({ peer, localStream: cameraStream }));
+      peer.on("call", (call) =>
+        onPeerCall({ call, localStream: cameraStream })
+      );
 
-        call.on("stream", (userVideoStream) => {
-          console.log("got stream: ", { userVideoStream });
-          const peerVideo = document.querySelector(
-            `[data-video-id="${call.peer}"]`
-          );
-          let video = peerVideo as HTMLVideoElement;
-          console.log({ peerVideo });
+      // document.addEventListener("visibilitychange", function () {
+      //   console.log({ hidden: document.hidden });
 
-          if (!peerVideo) {
-            const newVideo = document.createElement("video");
-            newVideo.className = "camera-video";
-            newVideo.dataset.videoId = call.peer;
-            video = newVideo;
-          }
-
-          console.log({ userVideoStream });
-          video.autoplay = true;
-          video.muted = true;
-          video.srcObject = userVideoStream;
-          document.body.appendChild(video);
-        });
-      });
-
-      document.addEventListener("visibilitychange", function () {
-        console.log({ hidden: document.hidden });
-
-        if (document.hidden) {
-          socket.emit("track-ended", "Użytkownik zmienił zakładkę");
-        } else {
-          socket.emit("track-ended", "Użytkownik powrócił na zakładkę");
-        }
-      });
+      //   if (document.hidden) {
+      //     socket.emit("track-ended", "Użytkownik zmienił zakładkę");
+      //   } else {
+      //     socket.emit("track-ended", "Użytkownik powrócił na zakładkę");
+      //   }
+      // });
 
       function onConnect() {
         setIsConnected(true);
@@ -113,92 +188,39 @@ export default function Home() {
         setTransport("N/A");
       }
 
-      const onPeers = async (peers: string[]) => {
-        console.log({ peers });
-        let stream = createMediaStreamFake();
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-          });
-        } catch (err) {
-          console.log({ err });
-        }
+      // const onPeerEntered = async (peerId: string) => {
+      //   console.log(`peer ${peerId} entered`);
 
-        peers.forEach((otherPeer) => {
-          if (otherPeer === userId) return;
+      //   let call = null;
+      //   try {
+      //     console.log(`calling ${peerId}`);
 
-          try {
-            console.log(`calling ${otherPeer}`);
-            console.log("my stream: ", { stream });
-            console.log({ peer });
+      //     call = peer?.call(
+      //       peerId,
+      //       await navigator.mediaDevices.getUserMedia({
+      //         video: { facingMode: "environment" },
+      //       })
+      //     );
+      //   } catch (err) {}
 
-            const call = peer.call(otherPeer, stream);
+      //   call?.on("close", () => {
+      //     console.log("call close");
+      //     console.log({ call });
+      //   });
+      //   call?.on("willCloseOnRemote", () => {
+      //     console.log("call willCloseOnRemote");
+      //   });
+      //   call?.on("iceStateChanged", () => {
+      //     console.log("call iceStateChanged");
+      //   });
+      //   call?.on("error", () => {
+      //     console.log("call error");
+      //   });
+      // };
 
-            console.log({ call });
-
-            call.on("stream", (userVideoStream) => {
-              console.log("got stream: ", { userVideoStream });
-
-              const peerVideo = document.querySelector(
-                `[data-video-id="${otherPeer}"]`
-              );
-              let video = peerVideo as HTMLVideoElement;
-              console.log({ peerVideo });
-
-              if (!peerVideo) {
-                const newVideo = document.createElement("video");
-                newVideo.className = "camera-video";
-                newVideo.dataset.videoId = otherPeer;
-                video = newVideo;
-              }
-
-              console.log({ userVideoStream });
-              video.autoplay = true;
-              video.muted = true;
-              video.srcObject = userVideoStream;
-              document.body.appendChild(video);
-            });
-          } catch (err) {
-            console.log({ err });
-          }
-        });
-      };
-
-      const onPeerEntered = async (peerId: string) => {
-        console.log(`peer ${peerId} entered`);
-
-        let call = null;
-        try {
-          console.log(`calling ${peerId}`);
-
-          call = peer?.call(
-            peerId,
-            await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: "environment" },
-            })
-          );
-        } catch (err) {}
-
-        call?.on("close", () => {
-          console.log("call close");
-          console.log({ call });
-        });
-        call?.on("willCloseOnRemote", () => {
-          console.log("call willCloseOnRemote");
-        });
-        call?.on("iceStateChanged", () => {
-          console.log("call iceStateChanged");
-        });
-        call?.on("error", () => {
-          console.log("call error");
-        });
-      };
-
-      const onPeerLeft = (peerId: string) => {
-        document.querySelector(`[data-video-id="${peerId}"]`)?.remove();
-      };
-
-      socket.on("peers", onPeers);
+      socket.on("peers", (peers) =>
+        onPeers({ peers, peer, localStream: cameraStream })
+      );
       socket.on("connect", onConnect);
       socket.on("disconnect", onDisconnect);
       // socket.on("peer-entered", onPeerEntered);
@@ -209,15 +231,34 @@ export default function Home() {
         socket.off("disconnect", onDisconnect);
       };
     };
+
     init();
   }, []);
+  console.log({ remoteStreams });
 
   return (
     <div>
       <p>Status: {isConnected ? "connected" : "disconnected"}</p>
       <p>Transport: {transport}</p>
       <p className="font-bold">{myPeer?.id}</p>
-      <Camera />
+      <Camera stream={localStream} />
+      {remoteStreams.map(({ peerId, stream }, index) => {
+        console.log({ stream });
+
+        return (
+          <video
+            key={peerId}
+            data-video-id={peerId}
+            className="camera-video"
+            muted
+            autoPlay
+            ref={(el) => {
+              remoteVideosRefs.current[index] = el;
+              if (el) el.srcObject = stream;
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
