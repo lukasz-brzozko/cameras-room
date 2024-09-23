@@ -25,7 +25,11 @@ export default function Home() {
 
     try {
       stream = await window.navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: {
+          facingMode: "environment",
+          width: { ideal: 4096 },
+          height: { ideal: 2160 },
+        },
       });
     } catch (err) {
       console.log("Cannot access the camera");
