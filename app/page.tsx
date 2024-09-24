@@ -25,10 +25,12 @@ export default function Home() {
 
     try {
       stream = await window.navigator.mediaDevices.getUserMedia({
+        audio: false,
         video: {
           facingMode: "environment",
-          width: { ideal: 4096 },
-          height: { ideal: 2160 },
+          width: { ideal: 1280 },
+          height: { ideal: 1024 },
+          frameRate: { ideal: 15, max: 15 },
         },
       });
     } catch (err) {
