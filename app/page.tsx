@@ -19,6 +19,7 @@ export default function Home() {
   //
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
+  //
 
   const getCamera = async () => {
     let stream = createMediaStreamFake();
@@ -240,31 +241,28 @@ export default function Home() {
 
     init();
   }, []);
-  console.log({ remoteStreams });
 
   return (
     <div>
       <p>Status: {isConnected ? "connected" : "disconnected"}</p>
       <p>Transport: {transport}</p>
       <p className="font-bold">{myPeer?.id}</p>
-      <Camera stream={localStream} />
-      {remoteStreams.map(({ peerId, stream }, index) => {
-        console.log({ stream });
-
-        return (
-          <video
-            key={peerId}
-            data-video-id={peerId}
-            className="camera-video"
-            muted
-            autoPlay
-            ref={(el) => {
-              remoteVideosRefs.current[index] = el;
-              if (el) el.srcObject = stream;
-            }}
-          />
-        );
-      })}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 items-center">
+        <Camera id={"my-stream"} stream={localStream} />
+        {remoteStreams.map(({ peerId, stream }, index) => {
+          return (
+            <Camera
+              key={peerId}
+              id={peerId}
+              data-video-id={peerId}
+              ref={(el) => {
+                remoteVideosRefs.current[index] = el;
+                if (el) el.srcObject = stream;
+              }}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

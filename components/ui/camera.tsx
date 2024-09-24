@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { ForwardedRef, forwardRef, useEffect, useRef } from "react";
 
-function Camera({ stream }: { stream?: MediaStream }) {
+const Camera = forwardRef(function Camera(
+  { id, stream }: { id: string; stream?: MediaStream },
+  ref: ForwardedRef<HTMLVideoElement | null>
+) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [{ enabled }] = stream?.getVideoTracks() ?? [{}];
@@ -15,12 +18,18 @@ function Camera({ stream }: { stream?: MediaStream }) {
   return (
     <>
       {showVideo && (
-        <video className="w-full md:w-1/2" ref={videoRef} autoPlay muted>
+        <video
+          className="camera-video max-h-80 md:aspect-square w-full"
+          ref={ref ? ref : videoRef}
+          autoPlay
+          muted
+          data-video-id={id}
+        >
           Znacznik video nie jest wspierany przez przeglądarkę.
         </video>
       )}
     </>
   );
-}
+});
 
 export default Camera;
