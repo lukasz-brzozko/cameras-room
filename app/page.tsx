@@ -247,7 +247,7 @@ export default function Home() {
       <p>Status: {isConnected ? "connected" : "disconnected"}</p>
       <p>Transport: {transport}</p>
       <p className="font-bold">{myPeer?.id}</p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 items-center">
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 items-center">
         <Camera id={"my-stream"} stream={localStream} />
         {remoteStreams.map(({ peerId, stream }, index) => {
           return (
