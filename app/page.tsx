@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { socket } from "../socket";
-import { v4 as uuidv4 } from "uuid";
 import Camera from "@/components/ui/camera";
+import { motion, AnimatePresence } from "framer-motion";
 import Peer, { MediaConnection } from "peerjs";
+import { useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { socket } from "../socket";
 import { TPeerMessages } from "./page.types";
 
 export default function Home() {
@@ -93,7 +94,7 @@ export default function Home() {
         console.log({ call });
 
         call.on("stream", (remoteStream) =>
-          onCallStream({ remoteStream, otherPeer })
+          onCallStream({ remoteStream, otherPeer }),
         );
       } catch (err) {
         console.error(err);
@@ -137,16 +138,14 @@ export default function Home() {
 
     call.answer(localStream);
     call.on("stream", (remoteStream) =>
-      onCallStream({ remoteStream, otherPeer: call.peer })
+      onCallStream({ remoteStream, otherPeer: call.peer }),
     );
   };
 
   const onPeerLeft = (peerId: string) => {
-    const filteredRemoteStreams = remoteStreams.filter(
-      ({ peerId: id }) => peerId !== id
+    setRemoteStreams((prevState) =>
+      prevState.filter(({ peerId: id }) => peerId !== id),
     );
-
-    setRemoteStreams(filteredRemoteStreams);
   };
 
   useEffect(() => {
@@ -168,7 +167,7 @@ export default function Home() {
 
       peer.on("open", () => onPeerOpen({ peer, localStream: cameraStream }));
       peer.on("call", (call) =>
-        onPeerCall({ call, localStream: cameraStream })
+        onPeerCall({ call, localStream: cameraStream }),
       );
 
       // document.addEventListener("visibilitychange", function () {
@@ -226,7 +225,7 @@ export default function Home() {
       // };
 
       socket.on("peers", (peers) =>
-        onPeers({ peers, peer, localStream: cameraStream })
+        onPeers({ peers, peer, localStream: cameraStream }),
       );
       socket.on("connect", onConnect);
       socket.on("disconnect", onDisconnect);
@@ -247,22 +246,26 @@ export default function Home() {
       <p>Status: {isConnected ? "connected" : "disconnected"}</p>
       <p>Transport: {transport}</p>
       <p className="font-bold">{myPeer?.id}</p>
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 items-center">
-        <Camera id={"my-stream"} stream={localStream} />
-        {remoteStreams.map(({ peerId, stream }, index) => {
-          return (
-            <Camera
-              key={peerId}
-              id={peerId}
-              data-video-id={peerId}
-              ref={(el) => {
-                remoteVideosRefs.current[index] = el;
-                if (el) el.srcObject = stream;
-              }}
-            />
-          );
-        })}
-      </div>
+      <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        <AnimatePresence>
+          <Camera id="my-stream" stream={localStream} />
+          {remoteStreams.map(({ peerId, stream }, index) => {
+            return (
+              <Camera
+                key={peerId}
+                id={peerId}
+                ref={(el) => {
+                  remoteVideosRefs.current[index] = el;
+                  if (el) el.srcObject = stream;
+                }}
+              />
+            );
+          })}
+          <motion.p layout key="p">
+            test
+          </motion.p>
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
