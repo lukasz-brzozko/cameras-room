@@ -9,7 +9,19 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const Camera = forwardRef(function Camera(
-  { id, stream }: { id: string; stream?: MediaStream },
+  {
+    id,
+    stream,
+    onClick,
+    className,
+    animate = true,
+  }: {
+    id: string;
+    stream?: MediaStream;
+    animate?: boolean;
+    className?: string;
+    onClick?: () => void;
+  },
   ref: ForwardedRef<HTMLVideoElement | null>,
 ) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -31,21 +43,23 @@ const Camera = forwardRef(function Camera(
       {showVideo && (
         <motion.video
           layout
-          initial={{ opacity: 0, scale: 0 }}
+          initial={{ opacity: animate ? 0 : 1, scale: animate ? 0 : 1 }}
           animate={{
-            opacity: isLoaded ? 1 : 0,
-            scale: isLoaded ? 1 : 0,
+            opacity: isLoaded || !animate ? 1 : 0,
+            scale: isLoaded || !animate ? 1 : 0,
           }}
           exit={{ opacity: 0, scale: 0 }}
           className={cn(
             "camera-video",
-            "aspect-video max-h-80 w-full bg-black md:aspect-square",
+            "aspect-video max-h-80 w-full cursor-pointer bg-black md:aspect-square",
+            className,
           )}
           ref={ref ? ref : videoRef}
           autoPlay
           muted
           data-video-id={id}
           onLoadedData={handleVideoLoad}
+          onClick={onClick}
         >
           Znacznik video nie jest wspierany przez przeglądarkę.
         </motion.video>

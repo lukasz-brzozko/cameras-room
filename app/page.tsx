@@ -1,7 +1,14 @@
 "use client";
 
 import Camera from "@/components/ui/camera";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 import Peer, { MediaConnection } from "peerjs";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -15,6 +22,10 @@ export default function Home() {
   const [remoteStreams, setRemoteStreams] = useState<
     { stream: MediaStream; peerId: string }[]
   >([]);
+  const [activeStream, setActiveStream] = useState<{
+    stream?: MediaStream;
+    peerId: string;
+  } | null>(null);
   const remoteVideosRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   //
@@ -148,6 +159,13 @@ export default function Home() {
     );
   };
 
+  const handleVideoClick = (
+    peerStream: {
+      peerId: string;
+      stream?: MediaStream;
+    } | null,
+  ) => setActiveStream(peerStream);
+
   useEffect(() => {
     const init = async () => {
       const cameraStream = await getCamera();
@@ -242,18 +260,25 @@ export default function Home() {
   }, []);
 
   return (
-    <div>
-      <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-      <p>Transport: {transport}</p>
-      <p className="font-bold">{myPeer?.id}</p>
-      <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        <AnimatePresence>
-          <Camera id="my-stream" stream={localStream} />
+    <>
+      <div>
+        <p>Status: {isConnected ? "connected" : "disconnected"}</p>
+        <p>Transport: {transport}</p>
+        <p className="font-bold">{myPeer?.id}</p>
+        <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          <Camera
+            id="my-stream"
+            stream={localStream}
+            onClick={() =>
+              handleVideoClick({ peerId: "my-stream", stream: localStream })
+            }
+          />
           {remoteStreams.map(({ peerId, stream }, index) => {
             return (
               <Camera
                 key={peerId}
                 id={peerId}
+                onClick={() => handleVideoClick({ peerId, stream })}
                 ref={(el) => {
                   remoteVideosRefs.current[index] = el;
                   if (el) el.srcObject = stream;
@@ -264,8 +289,33 @@ export default function Home() {
           <motion.p layout key="p">
             test
           </motion.p>
-        </AnimatePresence>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+
+      {activeStream && (
+        <Dialog
+          open={!!activeStream}
+          onOpenChange={() => setActiveStream(null)}
+          modal
+        >
+          <DialogContent>
+            <DialogHeader className="hidden">
+              <DialogTitle>Kamera</DialogTitle>
+              <DialogDescription>
+                Obraz aktualnie wybranej kamery
+              </DialogDescription>
+            </DialogHeader>
+            <Camera
+              className={"aspect-auto h-screen w-screen"}
+              key={activeStream.peerId}
+              id={activeStream.peerId}
+              stream={activeStream.stream}
+              onClick={() => handleVideoClick(null)}
+              animate={false}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
