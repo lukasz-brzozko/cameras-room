@@ -48,10 +48,10 @@ const Camera = forwardRef(function Camera(
             opacity: isLoaded || !animate ? 1 : 0,
             scale: isLoaded || !animate ? 1 : 0,
           }}
-          exit={{ opacity: 0, scale: 0 }}
+          exit={animate ? { opacity: 0, scale: 0 } : {}}
           className={cn(
             "camera-video",
-            "aspect-video max-h-80 w-full cursor-pointer bg-black md:aspect-square",
+            "aspect-video max-h-80 w-full cursor-pointer rounded-md bg-black md:aspect-square",
             className,
           )}
           ref={ref ? ref : videoRef}

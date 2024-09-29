@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Peer, { MediaConnection } from "peerjs";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -34,7 +34,7 @@ export default function Home() {
   //
 
   const getCamera = async () => {
-    let stream = createMediaStreamFake();
+    let stream: MediaStream | null = null;
 
     try {
       stream = await window.navigator.mediaDevices.getUserMedia({
@@ -48,8 +48,9 @@ export default function Home() {
       });
     } catch (err) {
       console.log("Cannot access the camera");
+      stream = createMediaStreamFake();
     } finally {
-      setLocalStream(stream);
+      setLocalStream(stream as MediaStream);
     }
 
     return stream;
@@ -74,8 +75,10 @@ export default function Home() {
     remoteStream: MediaStream;
     otherPeer: string;
   }) => {
-    console.log("got stream: ", { remoteStream });
-    console.log("setRemoteStreams");
+    console.log("got stream: ", {
+      otherPeer,
+      remoteStream: remoteStream.getVideoTracks()[0],
+    });
 
     setRemoteStreams((prevState) => [
       ...prevState,
@@ -98,11 +101,8 @@ export default function Home() {
       try {
         console.log(`calling ${otherPeer}`);
         console.log("my stream: ", { localStream });
-        console.log({ peer });
 
         const call = peer.call(otherPeer, localStream);
-
-        console.log({ call });
 
         call.on("stream", (remoteStream) =>
           onCallStream({ remoteStream, otherPeer }),
@@ -145,7 +145,7 @@ export default function Home() {
     localStream: MediaStream;
   }) => {
     console.log("someone call me");
-    console.log({ localStream });
+    console.log({ localStream: localStream.getVideoTracks()[0] });
 
     call.answer(localStream);
     call.on("stream", (remoteStream) =>
@@ -266,56 +266,60 @@ export default function Home() {
         <p>Transport: {transport}</p>
         <p className="font-bold">{myPeer?.id}</p>
         <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-          <Camera
-            id="my-stream"
-            stream={localStream}
-            onClick={() =>
-              handleVideoClick({ peerId: "my-stream", stream: localStream })
-            }
-          />
-          {remoteStreams.map(({ peerId, stream }, index) => {
-            return (
+          <AnimatePresence>
+            {localStream && (
               <Camera
-                key={peerId}
-                id={peerId}
-                onClick={() => handleVideoClick({ peerId, stream })}
-                ref={(el) => {
-                  remoteVideosRefs.current[index] = el;
-                  if (el) el.srcObject = stream;
-                }}
+                id="my-stream"
+                stream={localStream}
+                onClick={() =>
+                  handleVideoClick({ peerId: "my-stream", stream: localStream })
+                }
               />
-            );
-          })}
-          <motion.p layout key="p">
-            test
-          </motion.p>
+            )}
+            {remoteStreams.map(({ peerId, stream }, index) => {
+              return (
+                <Camera
+                  key={peerId}
+                  id={peerId}
+                  onClick={() => handleVideoClick({ peerId, stream })}
+                  ref={(el) => {
+                    remoteVideosRefs.current[index] = el;
+                    if (el) el.srcObject = stream;
+                  }}
+                />
+              );
+            })}
+            <motion.p layout key="p">
+              test
+            </motion.p>
+          </AnimatePresence>
         </motion.div>
       </div>
 
-      {activeStream && (
-        <Dialog
-          open={!!activeStream}
-          onOpenChange={() => setActiveStream(null)}
-          modal
-        >
-          <DialogContent>
-            <DialogHeader className="hidden">
-              <DialogTitle>Kamera</DialogTitle>
-              <DialogDescription>
-                Obraz aktualnie wybranej kamery
-              </DialogDescription>
-            </DialogHeader>
-            <Camera
-              className={"aspect-auto h-screen w-screen"}
-              key={activeStream.peerId}
-              id={activeStream.peerId}
-              stream={activeStream.stream}
-              onClick={() => handleVideoClick(null)}
-              animate={false}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <Dialog
+        open={!!activeStream}
+        onOpenChange={() => setActiveStream(null)}
+        modal
+      >
+        <DialogContent>
+          <DialogHeader className="hidden">
+            <DialogTitle>Kamera</DialogTitle>
+            <DialogDescription>
+              Obraz aktualnie wybranej kamery
+            </DialogDescription>
+          </DialogHeader>
+          <Camera
+            className={
+              "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
+            }
+            key={activeStream?.peerId}
+            id={activeStream?.peerId}
+            stream={activeStream?.stream}
+            onClick={() => handleVideoClick(null)}
+            animate={false}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
