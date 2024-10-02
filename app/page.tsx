@@ -13,18 +13,22 @@ import Peer, { MediaConnection } from "peerjs";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
-import { TPeerMessages } from "./page.types";
+import { TPeer, TPeerId } from "./page.types";
 
 export default function Home() {
   const [myPeer, setMyPeer] = useState<Peer>();
   const [myPeerId] = useState(() => uuidv4());
   const [localStream, setLocalStream] = useState<MediaStream>();
-  const [remoteStreams, setRemoteStreams] = useState<
-    { stream: MediaStream; peerId: string }[]
+  const [isLocalCameraEnabled, setIsLocalCameraEnabled] = useState(false);
+  const [activePeers, setActivePeers] = useState<
+    { stream: MediaStream; peer: TPeer }[]
   >([]);
+  // const [remoteStreams, setRemoteStreams] = useState<
+  //   { stream: MediaStream; peerId: string }[]
+  // >([]);
   const [activeStream, setActiveStream] = useState<{
     stream?: MediaStream;
-    peerId: string;
+    peer?: TPeer;
   } | null>(null);
   const remoteVideosRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
@@ -34,7 +38,8 @@ export default function Home() {
   //
 
   const getCamera = async () => {
-    let stream: MediaStream | null = null;
+    let stream = createMediaStreamFake();
+    let isCameraEnabled = false;
 
     try {
       stream = await window.navigator.mediaDevices.getUserMedia({
@@ -46,14 +51,16 @@ export default function Home() {
           frameRate: { ideal: 15, max: 15 },
         },
       });
+      isCameraEnabled = true;
     } catch (err) {
-      console.log("Cannot access the camera");
-      stream = createMediaStreamFake();
+      console.error(err);
+      console.error("Cannot access the camera");
     } finally {
-      setLocalStream(stream as MediaStream);
+      setLocalStream(stream);
+      setIsLocalCameraEnabled(isCameraEnabled);
     }
 
-    return stream;
+    return { stream, isCameraEnabled };
   };
 
   const createEmptyVideoTrack = () => {
@@ -70,70 +77,90 @@ export default function Home() {
 
   const onCallStream = ({
     remoteStream,
-    otherPeer,
+    otherPeerId,
   }: {
     remoteStream: MediaStream;
-    otherPeer: string;
+    otherPeerId: TPeerId;
   }) => {
     console.log("got stream: ", {
-      otherPeer,
+      otherPeerId,
       remoteStream: remoteStream.getVideoTracks()[0],
     });
 
-    setRemoteStreams((prevState) => [
-      ...prevState,
-      { stream: remoteStream, peerId: otherPeer },
-    ]);
+    setActivePeers((prevState) => {
+      const updatedPeers = [...prevState];
+      const targetPeer = updatedPeers.find(
+        ({ peer: { id } }) => otherPeerId === id,
+      );
+
+      console.log({ targetPeer });
+
+      if (!targetPeer) return prevState;
+
+      console.log("updating stream");
+
+      targetPeer.stream = remoteStream;
+
+      return updatedPeers;
+    });
   };
 
-  const onPeers = async ({
-    peer,
+  const onActivePeers = (peers: TPeer[]) => {
+    console.log("got new active peers: ", { peers });
+
+    setActivePeers((prevState) => {
+      const prevPeers = [...prevState];
+      const newPeers = peers.map((peer) => {
+        const targetPrevPeer = prevPeers.find(
+          (prevPeer) => prevPeer.peer.id === peer.id,
+        );
+
+        if (targetPrevPeer) {
+          return {
+            peer,
+            stream: targetPrevPeer.stream,
+          };
+        }
+
+        console.log("resetting stream");
+        return {
+          peer,
+          stream: null as unknown as MediaStream,
+        };
+      });
+
+      console.log({ newPeers });
+
+      return newPeers;
+    });
+  };
+
+  const callToOtherPeers = async ({
+    myPeer,
     peers,
     localStream,
   }: {
-    peers: string[];
-    peer: Peer;
+    myPeer: Peer;
+    peers: TPeer[];
     localStream: MediaStream;
   }) => {
+    const { id } = myPeer;
+
     peers.forEach((otherPeer) => {
-      if (otherPeer === myPeerId) return;
+      if (otherPeer.id === id) return;
 
       try {
         console.log(`calling ${otherPeer}`);
         console.log("my stream: ", { localStream });
 
-        const call = peer.call(otherPeer, localStream);
+        const call = myPeer.call(otherPeer.id, localStream);
 
         call.on("stream", (remoteStream) =>
-          onCallStream({ remoteStream, otherPeer }),
+          onCallStream({ remoteStream, otherPeerId: otherPeer.id }),
         );
       } catch (err) {
         console.error(err);
       }
-    });
-  };
-
-  const onPeerMessage = ({
-    message: { activePeers },
-    peer,
-    localStream,
-  }: {
-    message: TPeerMessages;
-    peer: Peer;
-    localStream: MediaStream;
-  }) => {
-    if (activePeers) onPeers({ peers: activePeers, peer, localStream });
-  };
-
-  const onPeerOpen = ({
-    peer,
-    localStream,
-  }: {
-    peer: Peer;
-    localStream: MediaStream;
-  }) => {
-    peer.socket.on("message", (message) => {
-      onPeerMessage({ message, peer, localStream });
     });
   };
 
@@ -149,26 +176,45 @@ export default function Home() {
 
     call.answer(localStream);
     call.on("stream", (remoteStream) =>
-      onCallStream({ remoteStream, otherPeer: call.peer }),
+      onCallStream({ remoteStream, otherPeerId: call.peer }),
     );
   };
 
-  const onPeerLeft = (peerId: string) => {
-    setRemoteStreams((prevState) =>
-      prevState.filter(({ peerId: id }) => peerId !== id),
+  const onPeerLeft = (peerId: TPeerId) => {
+    setActivePeers((prevState) =>
+      prevState.filter(({ peer: { id } }) => peerId !== id),
     );
+  };
+
+  const onPeerEntered = (peerId: TPeerId) => {
+    // console.log("peer entered: ", { peerId });
+  };
+
+  const onInitCameraToggleFinish = (props: {
+    myPeer: Peer;
+    peers: TPeer[];
+    localStream: MediaStream;
+  }) => {
+    console.log("onInitCameraToggleFinish");
+    callToOtherPeers(props);
   };
 
   const handleVideoClick = (
     peerStream: {
-      peerId: string;
+      peer?: TPeer;
       stream?: MediaStream;
     } | null,
   ) => setActiveStream(peerStream);
 
+  const remotePeers = activePeers.filter(({ peer: { id } }) => id !== myPeerId);
+  const localCameraPeer: TPeer = {
+    id: myPeerId,
+    isCameraEnabled: isLocalCameraEnabled,
+  };
+
   useEffect(() => {
     const init = async () => {
-      const cameraStream = await getCamera();
+      const { isCameraEnabled, stream: cameraStream } = await getCamera();
 
       if (socket.connected) {
         onConnect();
@@ -183,7 +229,21 @@ export default function Home() {
 
       setMyPeer(peer);
 
-      peer.on("open", () => onPeerOpen({ peer, localStream: cameraStream }));
+      peer.on("open", () => {
+        socket.emit(
+          "camera-toggle",
+          {
+            enabled: isCameraEnabled,
+            peerId: myPeerId,
+          },
+          (peers: TPeer[]) =>
+            onInitCameraToggleFinish({
+              peers,
+              myPeer: peer,
+              localStream: cameraStream,
+            }),
+        );
+      });
       peer.on("call", (call) =>
         onPeerCall({ call, localStream: cameraStream }),
       );
@@ -212,52 +272,31 @@ export default function Home() {
         setTransport("N/A");
       }
 
-      // const onPeerEntered = async (peerId: string) => {
-      //   console.log(`peer ${peerId} entered`);
-
-      //   let call = null;
-      //   try {
-      //     console.log(`calling ${peerId}`);
-
-      //     call = peer?.call(
-      //       peerId,
-      //       await navigator.mediaDevices.getUserMedia({
-      //         video: { facingMode: "environment" },
-      //       })
-      //     );
-      //   } catch (err) {}
-
-      //   call?.on("close", () => {
-      //     console.log("call close");
-      //     console.log({ call });
-      //   });
-      //   call?.on("willCloseOnRemote", () => {
-      //     console.log("call willCloseOnRemote");
-      //   });
-      //   call?.on("iceStateChanged", () => {
-      //     console.log("call iceStateChanged");
-      //   });
-      //   call?.on("error", () => {
-      //     console.log("call error");
-      //   });
-      // };
-
-      socket.on("peers", (peers) =>
-        onPeers({ peers, peer, localStream: cameraStream }),
-      );
       socket.on("connect", onConnect);
       socket.on("disconnect", onDisconnect);
-      // socket.on("peer-entered", onPeerEntered);
+      socket.on("active-peers", onActivePeers);
+      socket.on("peer-entered", onPeerEntered);
       socket.on("peer-left", onPeerLeft);
 
       return () => {
         socket.off("connect", onConnect);
         socket.off("disconnect", onDisconnect);
+        socket.off("active-peers", onActivePeers);
+        socket.off("peer-entered", onPeerEntered);
+        socket.off("peer-left", onPeerLeft);
       };
     };
 
     init();
   }, []);
+
+  useEffect(() => {
+    console.log({ remoteVideosRefs: remoteVideosRefs.current });
+    remoteVideosRefs.current.forEach((video, index) => {
+      if (video === null) return;
+      video.srcObject = remotePeers[index]?.stream;
+    });
+  }, [remotePeers]);
 
   return (
     <>
@@ -267,24 +306,27 @@ export default function Home() {
         <p className="font-bold">{myPeer?.id}</p>
         <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           <AnimatePresence>
-            {localStream && (
+            {isLocalCameraEnabled && (
               <Camera
-                id="my-stream"
+                peer={localCameraPeer}
                 stream={localStream}
                 onClick={() =>
-                  handleVideoClick({ peerId: "my-stream", stream: localStream })
+                  handleVideoClick({
+                    peer: localCameraPeer,
+                    stream: localStream,
+                  })
                 }
               />
             )}
-            {remoteStreams.map(({ peerId, stream }, index) => {
+            {remotePeers.map(({ peer, stream }, index) => {
               return (
                 <Camera
-                  key={peerId}
-                  id={peerId}
-                  onClick={() => handleVideoClick({ peerId, stream })}
+                  key={peer.id}
+                  peer={peer}
+                  onClick={() => handleVideoClick({ peer, stream })}
                   ref={(el) => {
                     remoteVideosRefs.current[index] = el;
-                    if (el) el.srcObject = stream;
+                    if (el && stream) el.srcObject = stream;
                   }}
                 />
               );
@@ -312,8 +354,8 @@ export default function Home() {
             className={
               "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
             }
-            key={activeStream?.peerId}
-            id={activeStream?.peerId}
+            peer={activeStream?.peer}
+            key={activeStream?.peer?.id}
             stream={activeStream?.stream}
             onClick={() => handleVideoClick(null)}
             animate={false}
