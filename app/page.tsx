@@ -30,7 +30,9 @@ export default function Home() {
     stream?: MediaStream;
     peer?: TPeer;
   } | null>(null);
-  const remoteVideosRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const remoteVideosRefs = useRef<{
+    [peerId: string]: HTMLVideoElement | null;
+  }>({});
 
   //
   const [isConnected, setIsConnected] = useState(false);
@@ -93,11 +95,7 @@ export default function Home() {
         ({ peer: { id } }) => otherPeerId === id,
       );
 
-      console.log({ targetPeer });
-
       if (!targetPeer) return prevState;
-
-      console.log("updating stream");
 
       targetPeer.stream = remoteStream;
 
@@ -106,8 +104,6 @@ export default function Home() {
   };
 
   const onActivePeers = (peers: TPeer[]) => {
-    console.log("got new active peers: ", { peers });
-
     setActivePeers((prevState) => {
       const prevPeers = [...prevState];
       const newPeers = peers.map((peer) => {
@@ -122,14 +118,11 @@ export default function Home() {
           };
         }
 
-        console.log("resetting stream");
         return {
           peer,
           stream: null as unknown as MediaStream,
         };
       });
-
-      console.log({ newPeers });
 
       return newPeers;
     });
@@ -195,7 +188,6 @@ export default function Home() {
     peers: TPeer[];
     localStream: MediaStream;
   }) => {
-    console.log("onInitCameraToggleFinish");
     callToOtherPeers(props);
   };
 
@@ -291,10 +283,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    console.log({ remoteVideosRefs: remoteVideosRefs.current });
-    remoteVideosRefs.current.forEach((video, index) => {
-      if (video === null) return;
-      video.srcObject = remotePeers[index]?.stream;
+    const peersId = Object.keys(remoteVideosRefs.current);
+
+    peersId.forEach((id) => {
+      if (!remoteVideosRefs.current[id]) return;
+      const targetPeer = remotePeers.find(
+        (remotePeer) => remotePeer.peer.id === id,
+      );
+
+      remoteVideosRefs.current[id].srcObject = targetPeer?.stream ?? null;
     });
   }, [remotePeers]);
 
@@ -318,15 +315,19 @@ export default function Home() {
                 }
               />
             )}
-            {remotePeers.map(({ peer, stream }, index) => {
+            {remotePeers.map(({ peer, stream }) => {
               return (
                 <Camera
                   key={peer.id}
                   peer={peer}
                   onClick={() => handleVideoClick({ peer, stream })}
                   ref={(el) => {
-                    remoteVideosRefs.current[index] = el;
-                    if (el && stream) el.srcObject = stream;
+                    if (el) {
+                      remoteVideosRefs.current[peer.id] = el;
+                      if (stream) el.srcObject = stream;
+                    } else {
+                      delete remoteVideosRefs.current[peer.id];
+                    }
                   }}
                 />
               );

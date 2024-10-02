@@ -29,7 +29,6 @@ const Camera = forwardRef(function Camera(
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { isCameraEnabled } = peer ?? {};
-  console.log({ isCameraEnabled });
 
   const handleVideoLoad = () => setIsLoaded(true);
 
@@ -37,7 +36,7 @@ const Camera = forwardRef(function Camera(
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, ref]);
 
   return (
     <>
