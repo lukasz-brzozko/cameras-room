@@ -286,12 +286,16 @@ export default function Home() {
     const peersId = Object.keys(remoteVideosRefs.current);
 
     peersId.forEach((id) => {
-      if (!remoteVideosRefs.current[id]) return;
+      const videoElement = remoteVideosRefs.current[id];
+      if (!videoElement) return;
+
       const targetPeer = remotePeers.find(
         (remotePeer) => remotePeer.peer.id === id,
       );
 
-      remoteVideosRefs.current[id].srcObject = targetPeer?.stream ?? null;
+      if (targetPeer && targetPeer.stream !== videoElement.srcObject) {
+        videoElement.srcObject = targetPeer.stream;
+      }
     });
   }, [remotePeers]);
 
