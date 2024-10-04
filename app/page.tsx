@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ViewsCounter from "@/components/ui/viewsCounter";
 import { AnimatePresence, motion } from "framer-motion";
 import Peer, { MediaConnection } from "peerjs";
 import { useEffect, useRef, useState } from "react";
@@ -55,8 +56,8 @@ export default function Home() {
       });
       isCameraEnabled = true;
     } catch (err) {
-      console.error(err);
-      console.error("Cannot access the camera");
+      console.warn(err);
+      console.warn("Cannot access the camera");
     } finally {
       setLocalStream(stream);
       setIsLocalCameraEnabled(isCameraEnabled);
@@ -367,6 +368,7 @@ export default function Home() {
           />
         </DialogContent>
       </Dialog>
+      <ViewsCounter count={activePeers.length} />
     </>
   );
 }
