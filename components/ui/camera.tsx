@@ -7,16 +7,17 @@ import React, {
 } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { TPeer } from "@/app/page.types";
 
 const Camera = forwardRef(function Camera(
   {
-    id,
+    peer,
     stream,
     onClick,
     className,
     animate = true,
   }: {
-    id: string;
+    peer?: TPeer;
     stream?: MediaStream;
     animate?: boolean;
     className?: string;
@@ -27,8 +28,7 @@ const Camera = forwardRef(function Camera(
   const [isLoaded, setIsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [{ enabled }] = stream?.getVideoTracks() ?? [{}];
-  const showVideo = enabled !== false;
+  const { isCameraEnabled } = peer ?? {};
 
   const handleVideoLoad = () => setIsLoaded(true);
 
@@ -36,11 +36,11 @@ const Camera = forwardRef(function Camera(
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, ref]);
 
   return (
     <>
-      {showVideo && (
+      {isCameraEnabled && (
         <motion.video
           layout
           initial={{ opacity: animate ? 0 : 1, scale: animate ? 0 : 1 }}
@@ -57,7 +57,6 @@ const Camera = forwardRef(function Camera(
           ref={ref ? ref : videoRef}
           autoPlay
           muted
-          data-video-id={id}
           onLoadedData={handleVideoLoad}
           onClick={onClick}
         >

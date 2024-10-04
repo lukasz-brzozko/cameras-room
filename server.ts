@@ -5,6 +5,7 @@ import { createServer } from "node:https";
 import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
+import { TPeer } from "./app/page.types";
 
 const { NODE_ENV, HOST: hostname, PORT_PEER, PORT_SERVER } = process.env;
 const dev = NODE_ENV !== "production";
@@ -15,7 +16,8 @@ const peerPort = Number(PORT_PEER) || 9000;
 const app = next({ dev, hostname, port: serverPort });
 const handler = app.getRequestHandler();
 
-let peers: string[] = [];
+// const peersToSocketMap = new Map();
+let peers: TPeer[] = [];
 
 app.prepare().then(() => {
   const keyPath = path.join(__dirname, "certificates", "localhost-key.pem");
@@ -33,6 +35,23 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("connected socket");
 
+    socket.on(
+      "camera-toggle",
+      (
+        { enabled, peerId }: { enabled: boolean; peerId: string },
+        callback: (peers: TPeer[]) => void,
+      ) => {
+        const targetPeer = peers.find((peer) => peer.id === peerId);
+
+        if (!targetPeer) return;
+        if (targetPeer.isCameraEnabled === enabled) return callback?.(peers);
+
+        targetPeer.isCameraEnabled = enabled;
+
+        socket.broadcast.emit("active-peers", peers);
+        callback?.(peers);
+      },
+    );
     socket.on("track-ended", (data) => console.log(data));
   });
 
@@ -58,14 +77,16 @@ app.prepare().then(() => {
 
   peerServer.on("connection", (client) => {
     console.log("Peer connected:", client.getId());
-    peers.push(client.getId());
-    client.send({ activePeers: peers });
-    // io.emit("peer-entered", client.getId());
+    peers.push({ id: client.getId(), isCameraEnabled: false });
+    io.emit("peer-entered", client.getId());
+    io.emit("active-peers", peers);
+    // client.send({ activePeers: peers });
   });
 
   peerServer.on("disconnect", (client) => {
     console.log("Peer disconnected:", client.getId());
-    peers = peers.filter((peer) => peer != client.getId());
+    peers = peers.filter((peer) => peer.id != client.getId());
     io.emit("peer-left", client.getId());
+    io.emit("active-peers", peers);
   });
 });
