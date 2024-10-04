@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import Camera from "@/components/ui/camera";
 import {
   Dialog,
@@ -9,9 +10,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ViewsCounter from "@/components/ui/viewsCounter";
+import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import debounce from "lodash.debounce";
+import { Video, VideoOff } from "lucide-react";
 import Peer, { MediaConnection } from "peerjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
 import { TPeer, TPeerId } from "./page.types";
@@ -20,13 +24,12 @@ export default function Home() {
   const [myPeer, setMyPeer] = useState<Peer>();
   const [myPeerId] = useState(() => uuidv4());
   const [localStream, setLocalStream] = useState<MediaStream>();
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [isLocalCameraEnabled, setIsLocalCameraEnabled] = useState(false);
   const [activePeers, setActivePeers] = useState<
     { stream: MediaStream; peer: TPeer }[]
   >([]);
-  // const [remoteStreams, setRemoteStreams] = useState<
-  //   { stream: MediaStream; peerId: string }[]
-  // >([]);
+  const [calls, setCalls] = useState<MediaConnection[]>([]);
   const [activeStream, setActiveStream] = useState<{
     stream?: MediaStream;
     peer?: TPeer;
@@ -40,9 +43,31 @@ export default function Home() {
   const [transport, setTransport] = useState("N/A");
   //
 
-  const getCamera = async () => {
-    let stream = createMediaStreamFake();
+  const getInitStream = () => createMediaStreamFake();
+
+  const setLocalCameraState = ({
+    stream,
+    isCameraEnabled,
+  }: {
+    stream: MediaStream;
+    isCameraEnabled: boolean;
+  }) => {
+    setIsCameraLoading(false);
+    setLocalStream(stream);
+    setIsLocalCameraEnabled(isCameraEnabled);
+  };
+
+  const getCamera = async (useFakeStream: boolean | undefined) => {
+    console.log("getCamera call");
+
+    let stream = localStream ?? createMediaStreamFake();
     let isCameraEnabled = false;
+
+    if (useFakeStream) {
+      setLocalCameraState({ stream, isCameraEnabled });
+
+      return { stream, isCameraEnabled };
+    }
 
     try {
       stream = await window.navigator.mediaDevices.getUserMedia({
@@ -59,8 +84,7 @@ export default function Home() {
       console.warn(err);
       console.warn("Cannot access the camera");
     } finally {
-      setLocalStream(stream);
-      setIsLocalCameraEnabled(isCameraEnabled);
+      setLocalCameraState({ stream, isCameraEnabled });
     }
 
     return { stream, isCameraEnabled };
@@ -129,6 +153,17 @@ export default function Home() {
     });
   };
 
+  const addCall = (call: MediaConnection) => {
+    setCalls((prevState) => [...prevState, call]);
+  };
+
+  const removeCall = (peerId: TPeerId) => {
+    setCalls((prevState) => {
+      const prevPeers = [...prevState];
+      return prevPeers.filter(({ peer }) => peer !== peerId);
+    });
+  };
+
   const callToOtherPeers = async ({
     myPeer,
     peers,
@@ -148,6 +183,7 @@ export default function Home() {
         console.log("my stream: ", { localStream });
 
         const call = myPeer.call(otherPeer.id, localStream);
+        addCall(call);
 
         call.on("stream", (remoteStream) =>
           onCallStream({ remoteStream, otherPeerId: otherPeer.id }),
@@ -178,6 +214,7 @@ export default function Home() {
     setActivePeers((prevState) =>
       prevState.filter(({ peer: { id } }) => peerId !== id),
     );
+    removeCall(peerId);
   };
 
   const onPeerEntered = (peerId: TPeerId) => {
@@ -205,9 +242,31 @@ export default function Home() {
     isCameraEnabled: isLocalCameraEnabled,
   };
 
+  const getCameraDebounced = useCallback(
+    debounce((useFakeStream: boolean | undefined) => {
+      getCamera(useFakeStream);
+    }, 300),
+    [],
+  );
+
+  const toggleCamera = async (enable: boolean) => {
+    console.log("click");
+
+    await getCameraDebounced(!enable);
+  };
+
+  useEffect(() => {
+    socket.emit("camera-toggle", {
+      enabled: isLocalCameraEnabled,
+      peerId: myPeerId,
+    });
+  }, [isLocalCameraEnabled, myPeerId]);
+
   useEffect(() => {
     const init = async () => {
-      const { isCameraEnabled, stream: cameraStream } = await getCamera();
+      // const { isCameraEnabled, stream: cameraStream } = await getCamera();
+      const isCameraEnabled = false;
+      const cameraStream = getInitStream();
 
       if (socket.connected) {
         onConnect();
@@ -237,9 +296,10 @@ export default function Home() {
             }),
         );
       });
-      peer.on("call", (call) =>
-        onPeerCall({ call, localStream: cameraStream }),
-      );
+      peer.on("call", (call) => {
+        onPeerCall({ call, localStream: cameraStream });
+        addCall(call);
+      });
 
       // document.addEventListener("visibilitychange", function () {
       //   console.log({ hidden: document.hidden });
@@ -282,6 +342,18 @@ export default function Home() {
 
     init();
   }, []);
+
+  useEffect(() => {
+    calls.forEach((call) => {
+      const [sender] = call.peerConnection?.getSenders() ?? [];
+
+      if (sender && localStream) {
+        const [track] = localStream.getVideoTracks();
+        sender.replaceTrack(track);
+      }
+    });
+    console.log({ calls });
+  }, [localStream, calls, myPeerId, isLocalCameraEnabled]);
 
   useEffect(() => {
     const peersId = Object.keys(remoteVideosRefs.current);
@@ -341,6 +413,26 @@ export default function Home() {
               test
             </motion.p>
           </AnimatePresence>
+        </motion.div>
+
+        <motion.div
+          className="fixed bottom-4 right-4 lg:right-8"
+          initial={{ opacity: 0, y: "100%" }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Button
+            className={cn(
+              "hover:bg-current-80 size-16 transition lg:hover:bg-primary/80",
+              isLocalCameraEnabled && "bg-red-500 lg:hover:bg-red-500/80",
+              isCameraLoading && "pointer-events-none opacity-50",
+            )}
+            onClick={() => {
+              setIsCameraLoading(true);
+              toggleCamera(!isLocalCameraEnabled);
+            }}
+          >
+            {isLocalCameraEnabled ? <Video /> : <VideoOff />}
+          </Button>
         </motion.div>
       </div>
 
