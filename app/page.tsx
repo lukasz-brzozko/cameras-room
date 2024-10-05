@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import Camera from "@/components/ui/camera";
 import {
   Dialog,
@@ -9,17 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ToggleCameraButton from "@/components/ui/toggleCameraButton";
 import ViewsCounter from "@/components/ui/viewsCounter";
-import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import debounce from "lodash.debounce";
-import { Video, VideoOff } from "lucide-react";
 import Peer, { MediaConnection } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
 import { TPeer, TPeerId } from "./page.types";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 
 export default function Home() {
   const [myPeer, setMyPeer] = useState<Peer>();
@@ -261,6 +258,11 @@ export default function Home() {
     await getCameraDebounced(!enable);
   };
 
+  const handleToggleCameraButtonClick = () => {
+    setIsCameraLoading(true);
+    toggleCamera(!isLocalCameraEnabled);
+  };
+
   useEffect(() => {
     socket.emit("camera-toggle", {
       enabled: isLocalCameraEnabled,
@@ -426,30 +428,11 @@ export default function Home() {
           initial={{ opacity: 0, y: "100%" }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Button
-            className={cn(
-              "size-14 transition lg:size-16 lg:hover:bg-primary/80",
-              isLocalCameraEnabled &&
-                "bg-red-500 text-primary-foreground dark:text-secondary-foreground lg:hover:bg-red-500/80",
-              isCameraLoading && "pointer-events-none",
-            )}
-            onClick={() => {
-              setIsCameraLoading(true);
-              toggleCamera(!isLocalCameraEnabled);
-            }}
-          >
-            {!isCameraLoading &&
-              (isLocalCameraEnabled ? (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                  <Video />
-                </motion.div>
-              ) : (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                  <VideoOff />
-                </motion.div>
-              ))}
-            {isCameraLoading && <LoadingSpinner />}
-          </Button>
+          <ToggleCameraButton
+            isLocalCameraEnabled={isLocalCameraEnabled}
+            isCameraLoading={isCameraLoading}
+            onClick={handleToggleCameraButtonClick}
+          />
         </motion.div>
       </div>
 
