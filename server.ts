@@ -6,17 +6,17 @@ import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
 import { TPeer } from "./app/page.types";
+import { getServerUrls } from "./server.methods";
 
 const { NODE_ENV, HOST: hostname, PORT_PEER, PORT_SERVER } = process.env;
 const dev = NODE_ENV !== "production";
 const serverPort = Number(PORT_SERVER) || 3000;
 const peerPort = Number(PORT_PEER) || 9000;
+const serverUrls = getServerUrls(serverPort);
 
-// when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port: serverPort });
 const handler = app.getRequestHandler();
 
-// const peersToSocketMap = new Map();
 let peers: TPeer[] = [];
 
 app.prepare().then(() => {
@@ -61,7 +61,7 @@ app.prepare().then(() => {
     port: peerPort,
     ssl: options,
     corsOptions: {
-      origin: [`https://${hostname}:${serverPort}`],
+      origin: serverUrls,
       methods: ["GET", "POST"],
     },
   });
@@ -72,7 +72,7 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(serverPort, () => {
-      console.log(`> Ready on https://${hostname}:${serverPort}`);
+      console.log(`\x1b[35mReady on:\n${serverUrls?.join("\n")}\x1b[0m`);
     });
 
   peerServer.on("connection", (client) => {
