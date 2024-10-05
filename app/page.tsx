@@ -44,7 +44,12 @@ export default function Home() {
   const [transport, setTransport] = useState("N/A");
   //
 
-  const getInitStream = () => createMediaStreamFake();
+  const getInitStream = () => {
+    const stream = createMediaStreamFake();
+    setLocalStream(stream);
+
+    return stream;
+  };
 
   const setLocalCameraState = ({
     stream,
@@ -247,7 +252,7 @@ export default function Home() {
     debounce((useFakeStream: boolean | undefined) => {
       getCamera(useFakeStream);
     }, 300),
-    [],
+    [localStream],
   );
 
   const toggleCamera = async (enable: boolean) => {
