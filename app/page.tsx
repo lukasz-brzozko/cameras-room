@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
 import { TPeer, TPeerId } from "./page.types";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 
 export default function Home() {
   const [myPeer, setMyPeer] = useState<Peer>();
@@ -422,16 +423,27 @@ export default function Home() {
         >
           <Button
             className={cn(
-              "hover:bg-current-80 size-16 transition lg:hover:bg-primary/80",
-              isLocalCameraEnabled && "bg-red-500 lg:hover:bg-red-500/80",
-              isCameraLoading && "pointer-events-none opacity-50",
+              "size-14 transition lg:size-16 lg:hover:bg-primary/80",
+              isLocalCameraEnabled &&
+                "bg-red-500 text-primary-foreground dark:text-secondary-foreground lg:hover:bg-red-500/80",
+              isCameraLoading && "pointer-events-none",
             )}
             onClick={() => {
               setIsCameraLoading(true);
               toggleCamera(!isLocalCameraEnabled);
             }}
           >
-            {isLocalCameraEnabled ? <Video /> : <VideoOff />}
+            {!isCameraLoading &&
+              (isLocalCameraEnabled ? (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                  <Video />
+                </motion.div>
+              ) : (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                  <VideoOff />
+                </motion.div>
+              ))}
+            {isCameraLoading && <LoadingSpinner />}
           </Button>
         </motion.div>
       </div>
