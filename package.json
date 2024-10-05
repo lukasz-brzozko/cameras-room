@@ -6,6 +6,7 @@
     "dev": "nodemon",
     "build": "next build",
     "start": "next start",
+    "certificates": "next dev --experimental-https",
     "lint": "next lint"
   },
   "dependencies": {
