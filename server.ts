@@ -8,8 +8,9 @@ import { Server } from "socket.io";
 import { TPeer } from "./app/page.types";
 import { getServerUrls } from "./server.methods";
 
-const { NODE_ENV, HOST: hostname, PORT_PEER, PORT_SERVER } = process.env;
+const { NODE_ENV, HOST, PORT_PEER, PORT_SERVER } = process.env;
 const dev = NODE_ENV !== "production";
+const hostname = HOST ?? "0.0.0.0";
 const serverPort = Number(PORT_SERVER) || 3000;
 const peerPort = Number(PORT_PEER) || 9000;
 const serverUrls = getServerUrls(serverPort);
@@ -72,7 +73,10 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(serverPort, () => {
-      console.log(`\x1b[35mReady on:\n${serverUrls?.join("\n")}\x1b[0m`);
+      const urls = HOST
+        ? `https://${HOST}:${serverPort}`
+        : serverUrls?.join("\n");
+      console.log(`\x1b[35mReady on:\n${urls}\x1b[0m`);
     });
 
   peerServer.on("connection", (client) => {
