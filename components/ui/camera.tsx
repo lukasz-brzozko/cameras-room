@@ -15,11 +15,11 @@ const Camera = forwardRef(function Camera(
     stream,
     onClick,
     className,
-    animate = true,
+    reducedMotion,
   }: {
     peer?: TPeer;
     stream?: MediaStream;
-    animate?: boolean;
+    reducedMotion?: boolean;
     className?: string;
     onClick?: () => void;
   },
@@ -43,12 +43,12 @@ const Camera = forwardRef(function Camera(
       {isCameraEnabled && (
         <motion.video
           layout
-          initial={{ opacity: animate ? 0 : 1, scale: animate ? 0 : 1 }}
+          initial={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
           animate={{
-            opacity: isLoaded || !animate ? 1 : 0,
-            scale: isLoaded || !animate ? 1 : 0,
+            opacity: isLoaded ? 1 : 0,
+            scale: isLoaded || reducedMotion ? 1 : 0,
           }}
-          exit={animate ? { opacity: 0, scale: 0 } : {}}
+          exit={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
           className={cn(
             "camera-video",
             "aspect-video max-h-80 w-full cursor-pointer rounded-md bg-black md:aspect-square",

@@ -451,16 +451,20 @@ export default function Home() {
               Obraz aktualnie wybranej kamery
             </DialogDescription>
           </DialogHeader>
-          <Camera
-            className={
-              "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
-            }
-            peer={activeStream?.peer}
-            key={activeStream?.peer?.id}
-            stream={activeStream?.stream}
-            onClick={() => handleVideoClick(null)}
-            animate={false}
-          />
+          <AnimatePresence>
+            {activeStream && (
+              <Camera
+                className={
+                  "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
+                }
+                peer={activeStream.peer}
+                key={activeStream.peer?.id}
+                stream={activeStream.stream}
+                onClick={() => handleVideoClick(null)}
+                reducedMotion={true}
+              />
+            )}
+          </AnimatePresence>
         </DialogContent>
       </Dialog>
       <ViewsCounter count={activePeers.length} />
