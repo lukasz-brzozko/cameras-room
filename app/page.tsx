@@ -32,6 +32,7 @@ export default function Home() {
     stream?: MediaStream;
     peer?: TPeer;
   } | null>(null);
+  const [cameraError, setCameraError] = useState<Error | null>(null);
   const remoteVideosRefs = useRef<{
     [peerId: string]: HTMLVideoElement | null;
   }>({});
@@ -83,9 +84,10 @@ export default function Home() {
         },
       });
       isCameraEnabled = true;
+      setCameraError(null);
     } catch (err) {
       console.warn(err);
-      console.warn("Cannot access the camera");
+      setCameraError(err as Error);
     } finally {
       setLocalCameraState({ stream, isCameraEnabled });
     }
@@ -431,6 +433,7 @@ export default function Home() {
           <ToggleCameraButton
             isLocalCameraEnabled={isLocalCameraEnabled}
             isCameraLoading={isCameraLoading}
+            error={cameraError}
             onClick={handleToggleCameraButtonClick}
           />
         </motion.div>
