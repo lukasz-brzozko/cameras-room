@@ -220,6 +220,11 @@ export default function Home() {
       prevState.filter(({ peer: { id } }) => peerId !== id),
     );
     removeCall(peerId);
+    setActiveStream((prevState) => {
+      if (prevState?.peer?.id === peerId) return null;
+
+      return prevState;
+    });
   };
 
   const onPeerEntered = (peerId: TPeerId) => {
@@ -452,7 +457,7 @@ export default function Home() {
             </DialogDescription>
           </DialogHeader>
           <AnimatePresence>
-            {activeStream && (
+            {!!activeStream && (
               <Camera
                 className={
                   "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
