@@ -46,12 +46,8 @@ const DialogContent = React.forwardRef<
     >
       {children}
       <DialogPrimitive.Close className="absolute right-1 top-1 rounded-sm ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground md:right-4 md:top-4">
-        <Button
-          asChild
-          variant={"secondary"}
-          className="h-10 w-10 max-md:p-2 md:h-12 md:w-12"
-        >
-          <X className="h-4 w-4" />
+        <Button asChild variant="secondary" className="max-md:p-2">
+          <X className="h-8 w-8 md:h-12 md:w-12" />
         </Button>
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
