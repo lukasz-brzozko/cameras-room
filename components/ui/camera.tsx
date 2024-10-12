@@ -16,11 +16,13 @@ const Camera = forwardRef(function Camera(
     onClick,
     className,
     reducedMotion,
+    isModalCamera,
   }: {
     peer?: TPeer;
     stream?: MediaStream;
     reducedMotion?: boolean;
     className?: string;
+    isModalCamera?: boolean;
     onClick?: () => void;
   },
   ref: ForwardedRef<HTMLVideoElement | null>,
@@ -52,6 +54,8 @@ const Camera = forwardRef(function Camera(
           className={cn(
             "camera-video",
             "aspect-video max-h-80 w-full cursor-pointer rounded-md bg-black md:aspect-square",
+            !isModalCamera &&
+              "sm:w-[calc(50%-4px)] md:w-[calc((100%/3)-6px)] xl:w-[calc(25%-6px)]",
             className,
           )}
           ref={ref ? ref : videoRef}

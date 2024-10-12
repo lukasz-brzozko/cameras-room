@@ -389,11 +389,11 @@ export default function Home() {
 
   return (
     <>
-      <div>
+      <div className="flex min-h-[calc(100dvh-(2*16px))] flex-col">
         <p>Status: {isConnected ? "connected" : "disconnected"}</p>
         <p>Transport: {transport}</p>
         <p className="font-bold">{myPeer?.id}</p>
-        <motion.div className="grid items-center gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        <motion.div className="flex flex-grow flex-wrap content-center items-center justify-center gap-2">
           <AnimatePresence>
             {isLocalCameraEnabled && (
               <Camera
@@ -424,9 +424,6 @@ export default function Home() {
                 />
               );
             })}
-            <motion.p layout key="p">
-              test
-            </motion.p>
           </AnimatePresence>
         </motion.div>
 
@@ -467,6 +464,7 @@ export default function Home() {
                 stream={activeStream.stream}
                 onClick={() => handleVideoClick(null)}
                 reducedMotion={true}
+                isModalCamera
               />
             )}
           </AnimatePresence>
