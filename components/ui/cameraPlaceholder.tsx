@@ -24,6 +24,7 @@ function CameraPlaceholder({
         "flex aspect-video max-h-80 w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-md border-[3px] border-dashed border-primary p-5 text-primary transition-opacity sm:w-[calc(50%-4px)] md:aspect-square md:w-[calc((100%/3)-6px)] xl:w-[calc(25%-6px)] dark:border-secondary dark:text-secondary",
         isCameraLoading && "pointer-events-none !opacity-50",
       )}
+      role="button"
     >
       <span className="text-center text-xl font-medium lg:text-2xl">
         No video is currently shared.
