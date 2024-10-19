@@ -1,6 +1,7 @@
 "use client";
 
 import Camera from "@/components/ui/camera";
+import CameraPlaceholder from "@/components/ui/cameraPlaceholder";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import ViewsCounter from "@/components/ui/viewsCounter";
 import { AnimatePresence, motion } from "framer-motion";
 import debounce from "lodash.debounce";
 import Peer, { MediaConnection } from "peerjs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
 import { TPeer, TPeerId } from "./page.types";
@@ -246,7 +247,27 @@ export default function Home() {
     } | null,
   ) => setActiveStream(peerStream);
 
+  const toggleCamera = (enable: boolean) => {
+    getCameraDebounced(!enable);
+  };
+
+  const handleToggleCameraButtonClick = () => {
+    setIsCameraLoading(true);
+    toggleCamera(!isLocalCameraEnabled);
+  };
+
   const remotePeers = activePeers.filter(({ peer: { id } }) => id !== myPeerId);
+
+  const streamingRemotePeers = useMemo(() => {
+    return remotePeers.filter(
+      ({ peer: { isCameraEnabled } }) => isCameraEnabled,
+    );
+  }, [remotePeers]);
+  console.log({ streamingRemotePeers });
+
+  const showCameraPlaceholder =
+    streamingRemotePeers.length === 0 && !isLocalCameraEnabled;
+
   const localCameraPeer: TPeer = {
     id: myPeerId,
     isCameraEnabled: isLocalCameraEnabled,
@@ -258,17 +279,6 @@ export default function Home() {
     }, 300),
     [localStream],
   );
-
-  const toggleCamera = async (enable: boolean) => {
-    console.log("click");
-
-    await getCameraDebounced(!enable);
-  };
-
-  const handleToggleCameraButtonClick = () => {
-    setIsCameraLoading(true);
-    toggleCamera(!isLocalCameraEnabled);
-  };
 
   useEffect(() => {
     socket.emit("camera-toggle", {
@@ -394,10 +404,10 @@ export default function Home() {
         <p>Transport: {transport}</p>
         <p className="font-bold">{myPeer?.id}</p>
         <motion.div className="flex flex-grow flex-wrap content-center items-center justify-center gap-2">
-          <AnimatePresence>
+          <AnimatePresence key="cameras">
             {isLocalCameraEnabled && (
               <Camera
-                peer={localCameraPeer}
+                key="local-camera"
                 stream={localStream}
                 onClick={() =>
                   handleVideoClick({
@@ -408,10 +418,9 @@ export default function Home() {
               />
             )}
             {remotePeers.map(({ peer, stream }) => {
-              return (
+              const camera = peer.isCameraEnabled ? (
                 <Camera
                   key={peer.id}
-                  peer={peer}
                   onClick={() => handleVideoClick({ peer, stream })}
                   ref={(el) => {
                     if (el) {
@@ -422,8 +431,16 @@ export default function Home() {
                     }
                   }}
                 />
-              );
+              ) : null;
+
+              return camera;
             })}
+            {showCameraPlaceholder && (
+              <CameraPlaceholder
+                isCameraLoading={isCameraLoading}
+                handleToggleCameraButtonClick={handleToggleCameraButtonClick}
+              />
+            )}
           </AnimatePresence>
         </motion.div>
 
@@ -459,7 +476,6 @@ export default function Home() {
                 className={
                   "aspect-auto h-auto cursor-default max-md:max-h-[80vh] max-md:w-full md:aspect-auto md:max-h-[80vmin] md:min-w-[750px] md:max-w-[80vmin]"
                 }
-                peer={activeStream.peer}
                 key={activeStream.peer?.id}
                 stream={activeStream.stream}
                 onClick={() => handleVideoClick(null)}
