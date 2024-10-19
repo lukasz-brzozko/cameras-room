@@ -5,7 +5,7 @@ import { createServer } from "node:https";
 import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
-import { TPeer } from "./app/page.types";
+import { TPeer, TPeerId } from "./app/page.types";
 import { getServerUrls } from "./server.methods";
 
 const { NODE_ENV, HOST, PORT_PEER, PORT_SERVER } = process.env;
@@ -48,12 +48,24 @@ app.prepare().then(() => {
         if (targetPeer.isCameraEnabled === enabled) return callback?.(peers);
 
         targetPeer.isCameraEnabled = enabled;
+        targetPeer.hasFocus = true;
 
         socket.broadcast.emit("active-peers", peers);
         callback?.(peers);
       },
     );
-    socket.on("track-ended", (data) => console.log(data));
+    socket.on(
+      "tab-focus-toggle",
+      ({ peerId, hasFocus }: { peerId: TPeerId; hasFocus: boolean }) => {
+        const targetPeer = peers.find((peer) => peer.id === peerId);
+
+        if (!targetPeer) return;
+
+        targetPeer.hasFocus = hasFocus;
+
+        io.emit("active-peers", peers);
+      },
+    );
   });
 
   const peerServer = PeerServer({
@@ -81,7 +93,7 @@ app.prepare().then(() => {
 
   peerServer.on("connection", (client) => {
     console.log("Peer connected:", client.getId());
-    peers.push({ id: client.getId(), isCameraEnabled: false });
+    peers.push({ id: client.getId(), isCameraEnabled: false, hasFocus: true });
     io.emit("peer-entered", client.getId());
     io.emit("active-peers", peers);
     // client.send({ activePeers: peers });
