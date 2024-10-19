@@ -20,6 +20,7 @@ import { socket } from "../socket";
 import { TPeer, TPeerId } from "./page.types";
 
 export default function Home() {
+  const [isInited, setIsInited] = useState(false);
   const [myPeer, setMyPeer] = useState<Peer>();
   const [myPeerId] = useState(() => uuidv4());
   const [localStream, setLocalStream] = useState<MediaStream>();
@@ -157,6 +158,8 @@ export default function Home() {
 
       return newPeers;
     });
+
+    setIsInited(true);
   };
 
   const addCall = (call: MediaConnection) => {
@@ -266,7 +269,7 @@ export default function Home() {
   console.log({ streamingRemotePeers });
 
   const showCameraPlaceholder =
-    streamingRemotePeers.length === 0 && !isLocalCameraEnabled;
+    isInited && streamingRemotePeers.length === 0 && !isLocalCameraEnabled;
 
   const localCameraPeer: TPeer = {
     id: myPeerId,
