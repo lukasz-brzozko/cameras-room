@@ -48,22 +48,9 @@ app.prepare().then(() => {
         if (targetPeer.isCameraEnabled === enabled) return callback?.(peers);
 
         targetPeer.isCameraEnabled = enabled;
-        targetPeer.hasFocus = true;
 
         socket.broadcast.emit("active-peers", peers);
         callback?.(peers);
-      },
-    );
-    socket.on(
-      "tab-focus-toggle",
-      ({ peerId, hasFocus }: { peerId: TPeerId; hasFocus: boolean }) => {
-        const targetPeer = peers.find((peer) => peer.id === peerId);
-
-        if (!targetPeer) return;
-
-        targetPeer.hasFocus = hasFocus;
-
-        io.emit("active-peers", peers);
       },
     );
   });
@@ -93,7 +80,7 @@ app.prepare().then(() => {
 
   peerServer.on("connection", (client) => {
     console.log("Peer connected:", client.getId());
-    peers.push({ id: client.getId(), isCameraEnabled: false, hasFocus: true });
+    peers.push({ id: client.getId(), isCameraEnabled: false });
     io.emit("peer-entered", client.getId());
     io.emit("active-peers", peers);
     // client.send({ activePeers: peers });

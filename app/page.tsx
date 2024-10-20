@@ -273,7 +273,6 @@ export default function Home() {
   const localCameraPeer: TPeer = {
     id: myPeerId,
     isCameraEnabled: isLocalCameraEnabled,
-    hasFocus: true,
   };
 
   const getCameraDebounced = useCallback(
@@ -398,13 +397,6 @@ export default function Home() {
     });
   }, [remotePeers]);
 
-  // useEffect(() => {
-  //   document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  //   return () =>
-  //     document.removeEventListener("visibilitychange", handleVisibilityChange);
-  // }, [handleVisibilityChange]);
-
   return (
     <>
       <div className="flex min-h-[calc(100dvh-(2*16px))] flex-col">
@@ -428,7 +420,6 @@ export default function Home() {
             {remotePeers.map(({ peer, stream }) => {
               const camera = peer.isCameraEnabled ? (
                 <Camera
-                  peer={peer}
                   key={peer.id}
                   onClick={() => handleVideoClick({ peer, stream })}
                   ref={(el) => {
