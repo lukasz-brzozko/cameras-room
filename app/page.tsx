@@ -283,11 +283,12 @@ export default function Home() {
     [localStream],
   );
 
-  const handleVisibilityChange = () => {
+  const handleVisibilityChange = useCallback(() => {
     socket.emit("tab-focus-toggle", {
       peerId: myPeerId,
       hasFocus: !document.hidden,
     });
+  }, [myPeerId]);
   };
 
   useEffect(() => {
@@ -397,12 +398,12 @@ export default function Home() {
     });
   }, [remotePeers]);
 
-  useEffect(() => {
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+  // useEffect(() => {
+  //   document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+  //   return () =>
+  //     document.removeEventListener("visibilitychange", handleVisibilityChange);
+  // }, [handleVisibilityChange]);
 
   return (
     <>
