@@ -231,10 +231,6 @@ export default function Home() {
     });
   };
 
-  const onPeerEntered = (peerId: TPeerId) => {
-    // console.log("peer entered: ", { peerId });
-  };
-
   const onInitCameraToggleFinish = (props: {
     myPeer: Peer;
     peers: TPeer[];
@@ -282,13 +278,46 @@ export default function Home() {
     [localStream],
   );
 
-  const handleVisibilityChange = useCallback(() => {
-    socket.emit("tab-focus-toggle", {
-      peerId: myPeerId,
-      hasFocus: !document.hidden,
+  const handleTrackMuteToggle = useCallback(
+    (peerId: TPeerId) => (e: Event) => {
+      const { type } = e;
+
+      const video = remoteVideosRefs.current[peerId];
+
+      if (!video) return;
+      console.log(`${type} ${peerId}`);
+
+      video.dataset.noFocus = String(type === "mute");
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const tracksObj = streamingRemotePeers.map(({ stream, peer: { id } }) => {
+      if (!stream) return;
+
+      const [track] = stream.getVideoTracks();
+
+      const onMute = handleTrackMuteToggle(id);
+      const onUnmute = handleTrackMuteToggle(id);
+
+      track.addEventListener("mute", onMute);
+      track.addEventListener("unmute", onUnmute);
+
+      return { track, id, onMute, onUnmute };
     });
-  }, [myPeerId]);
-  };
+
+    return () => {
+      tracksObj.forEach((trackObj) => {
+        if (!trackObj) return;
+
+        const { track, onMute, onUnmute } = trackObj;
+
+        track.removeEventListener("mute", onMute);
+        track.removeEventListener("unmute", onUnmute);
+      });
+    };
+  }, [streamingRemotePeers, handleTrackMuteToggle]);
 
   useEffect(() => {
     socket.emit("camera-toggle", {
