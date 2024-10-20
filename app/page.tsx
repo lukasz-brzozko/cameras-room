@@ -231,6 +231,10 @@ export default function Home() {
     });
   };
 
+  const onPeerEntered = (peerId: TPeerId) => {
+    // console.log("peer entered: ", { peerId });
+  };
+
   const onInitCameraToggleFinish = (props: {
     myPeer: Peer;
     peers: TPeer[];
