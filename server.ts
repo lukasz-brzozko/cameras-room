@@ -5,7 +5,7 @@ import { createServer } from "node:https";
 import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
-import { TPeer, TPeerId } from "./app/page.types";
+import { TPeer } from "./app/page.types";
 import { getServerUrls } from "./server.methods";
 
 const { NODE_ENV, HOST, PORT_PEER, PORT_SERVER } = process.env;
