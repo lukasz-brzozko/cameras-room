@@ -1,6 +1,6 @@
 "use client";
 
-import { login } from "@/app/actions/auth";
+import { login } from "@/lib/actions/auth";
 import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
@@ -25,6 +25,9 @@ export function LoginForm() {
     defaultValues: { password: "" },
   });
 
+  const { isSubmitting, isSubmitSuccessful } = form.formState;
+  const isLoading = isSubmitting || isSubmitSuccessful;
+
   const onSubmit = async (formData: LoginFormData) => {
     const result = await login(formData);
 
@@ -39,10 +42,11 @@ export function LoginForm() {
       });
     }
 
-    if (result.message === "ok") {
+    if (result?.message === "ok") {
       router.replace("/");
     }
   };
+
   return (
     <Form {...form}>
       <motion.form onSubmit={form.handleSubmit(onSubmit)}>
@@ -53,16 +57,18 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" {...field} />
+                <Input type="password" {...field} disabled={isLoading} />
               </FormControl>
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 <FormMessage />
               </AnimatePresence>
             </FormItem>
           )}
         />
         <motion.div transition={{ duration: 0.1 }} layout>
-          <Button type="submit">Submit</Button>
+          <Button type="submit" disabled={isLoading}>
+            Submit
+          </Button>
         </motion.div>
       </motion.form>
     </Form>

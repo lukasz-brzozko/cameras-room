@@ -1,11 +1,10 @@
 "use server";
 
 import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
-import { redirect } from "next/navigation";
+import { createSession } from "@/lib/session";
+import { v4 as uuidv4 } from "uuid";
 
 export async function login(formData: LoginFormData) {
-  console.log("auth");
-
   const validatedFields = LoginFormSchema.safeParse({
     password: formData.password,
   });
@@ -18,15 +17,15 @@ export async function login(formData: LoginFormData) {
 
   const { password } = validatedFields.data;
 
-  if (password !== "123") {
+  if (password !== process.env.PASSWORD) {
     return {
       errors: { password: ["Incorrect password. Please try again."] },
     };
   }
 
+  await createSession(uuidv4());
+
   return {
     message: "ok",
   };
-
-  // Call the provider or db to create a user...
 }
