@@ -1,11 +1,10 @@
 "use client";
 
-import { login } from "@/lib/actions/auth";
-import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+
 import { Button } from "./button";
 import {
   Form,
@@ -16,16 +15,18 @@ import {
   FormMessage,
 } from "./form";
 import { Input } from "./input";
+import { login } from "@/lib/actions/auth";
+import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
 
 export function LoginForm() {
   const router = useRouter();
 
   const form = useForm({
-    resolver: zodResolver(LoginFormSchema),
     defaultValues: { password: "" },
+    resolver: zodResolver(LoginFormSchema),
   });
 
-  const { isSubmitting, isSubmitSuccessful } = form.formState;
+  const { isSubmitSuccessful, isSubmitting } = form.formState;
   const isLoading = isSubmitting || isSubmitSuccessful;
 
   const onSubmit = async (formData: LoginFormData) => {
@@ -37,8 +38,8 @@ export function LoginForm() {
       console.log(result.errors);
 
       form.setError("password", {
-        type: "manual",
         message: result.errors.password[0], // Komunikat o błędzie
+        type: "manual",
       });
     }
 
@@ -65,8 +66,8 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <motion.div transition={{ duration: 0.1 }} layout>
-          <Button type="submit" disabled={isLoading}>
+        <motion.div layout transition={{ duration: 0.1 }}>
+          <Button disabled={isLoading} type="submit">
             Submit
           </Button>
         </motion.div>

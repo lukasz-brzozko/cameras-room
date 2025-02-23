@@ -1,19 +1,20 @@
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ForwardedRef, forwardRef, useEffect, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 const Camera = forwardRef(function Camera(
   {
+    className,
+    isModalCamera,
+    reducedMotion,
     stream,
     onClick,
-    className,
-    reducedMotion,
-    isModalCamera,
   }: {
-    stream?: MediaStream;
-    reducedMotion?: boolean;
     className?: string;
     isModalCamera?: boolean;
+    reducedMotion?: boolean;
+    stream?: MediaStream;
     onClick?: () => void;
   },
   ref: ForwardedRef<HTMLVideoElement | null>,
@@ -32,13 +33,13 @@ const Camera = forwardRef(function Camera(
   return (
     <>
       <motion.video
+        autoPlay
         layout
-        initial={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
+        muted
         animate={{
           opacity: isLoaded ? 1 : 0,
           scale: isLoaded || reducedMotion ? 1 : 0,
         }}
-        exit={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
         className={cn(
           "camera-video",
           "aspect-video max-h-80 w-full cursor-pointer rounded-md bg-black transition-opacity md:aspect-square",
@@ -47,11 +48,11 @@ const Camera = forwardRef(function Camera(
           // !hasFocus && "pointer-events-none !opacity-50",
           className,
         )}
+        exit={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
+        initial={{ opacity: 0, scale: reducedMotion ? 1 : 0 }}
         ref={ref ? ref : videoRef}
-        autoPlay
-        muted
-        onLoadedData={handleVideoLoad}
         onClick={onClick}
+        onLoadedData={handleVideoLoad}
       >
         Znacznik video nie jest wspierany przez przeglądarkę.
       </motion.video>

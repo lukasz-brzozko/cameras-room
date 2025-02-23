@@ -1,3 +1,77 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript",
+    "plugin:perfectionist/recommended-natural-legacy"
+  ],
+  "rules": {
+    "perfectionist/sort-jsx-props": [
+      "error",
+      {
+        "groups": [
+          "shorthand",
+          "unknown",
+          "handleCallback",
+          "onCallback"
+        ],
+        "customGroups": {
+          "handleCallback": "^handle.+",
+          "onCallback": "^on.+"
+        }
+      }
+    ],
+    "perfectionist/sort-interfaces": [
+      "error",
+      {
+        "groups": [
+          "property",
+          "method",
+          "property-optional",
+          "method-optional"
+        ]
+      }
+    ],
+    "perfectionist/sort-object-types": [
+      "error",
+      {
+        "groups": [
+          "property",
+          "method",
+          "optional-property",
+          "optional-method"
+        ]
+      }
+    ],
+    "perfectionist/sort-objects": [
+      "error",
+      {
+        "groups": [
+          "property",
+          "method",
+          "handleCallback",
+          "onCallback"
+        ],
+        "customGroups": {
+          "handleCallback": "^handle.+",
+          "onCallback": "^on.+"
+        }
+      }
+    ],
+    "perfectionist/sort-imports": [
+      "error",
+      {
+        "newlinesBetween": "always",
+        "groups": [
+          [
+            "builtin",
+            "external"
+          ],
+          "unknown"
+        ],
+        "internalPattern": [
+          "^@/"
+        ]
+      }
+    ]
+  }
 }

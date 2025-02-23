@@ -1,6 +1,7 @@
-import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Video, VideoOff } from "lucide-react";
+import { useEffect, useState } from "react";
+
 import { Button } from "./button";
 import { LoadingSpinner } from "./loadingSpinner";
 import {
@@ -9,17 +10,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./tooltip";
-import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 function ToggleCameraButton({
-  isLocalCameraEnabled,
-  isCameraLoading,
   error,
+  isCameraLoading,
+  isLocalCameraEnabled,
   onClick,
 }: {
-  isLocalCameraEnabled: boolean;
-  isCameraLoading: boolean;
   error: Error | null;
+  isCameraLoading: boolean;
+  isLocalCameraEnabled: boolean;
   onClick?: () => void;
 }) {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
@@ -28,7 +29,7 @@ function ToggleCameraButton({
     const icon = isLocalCameraEnabled ? <Video /> : <VideoOff />;
 
     return (
-      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+      <motion.div animate={{ scale: 1 }} initial={{ scale: 0 }}>
         {icon}
       </motion.div>
     );
