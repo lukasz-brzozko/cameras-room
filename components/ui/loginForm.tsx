@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { LockKeyhole } from "lucide-react";
 
 import { Button } from "./button";
 import {
@@ -17,6 +18,7 @@ import {
 import { Input } from "./input";
 import { login } from "@/lib/actions/auth";
 import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
 
 export function LoginForm() {
   const router = useRouter();
@@ -32,13 +34,9 @@ export function LoginForm() {
   const onSubmit = async (formData: LoginFormData) => {
     const result = await login(formData);
 
-    // Możesz obsłużyć wynik, np. przekazać błędy do formularza
     if (result?.errors?.password) {
-      // Można tu ustawić błędy w formularzu
-      console.log(result.errors);
-
       form.setError("password", {
-        message: result.errors.password[0], // Komunikat o błędzie
+        message: result.errors.password[0],
         type: "manual",
       });
     }
@@ -49,29 +47,59 @@ export function LoginForm() {
   };
 
   return (
-    <Form {...form}>
-      <motion.form onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" {...field} disabled={isLoading} />
-              </FormControl>
-              <AnimatePresence>
-                <FormMessage />
-              </AnimatePresence>
-            </FormItem>
-          )}
-        />
-        <motion.div layout transition={{ duration: 0.1 }}>
-          <Button disabled={isLoading} type="submit">
-            Submit
-          </Button>
-        </motion.div>
-      </motion.form>
-    </Form>
+    <Card className="w-[95%] max-w-[380px] mx-auto sm:w-[380px]">
+      <CardHeader className="space-y-1 p-4 sm:p-6">
+        <CardTitle className="text-xl sm:text-2xl text-center flex items-center justify-center gap-2">
+          <LockKeyhole className="w-5 h-5 sm:w-6 sm:h-6" />
+          Authentication
+        </CardTitle>
+        <CardDescription className="text-center text-sm sm:text-base">
+          Enter your password to access the application
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-6">
+        <Form {...form}>
+          <motion.form 
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-3 sm:space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm sm:text-base">Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password"
+                      {...field} 
+                      disabled={isLoading}
+                      className="text-sm sm:text-base h-9 sm:h-10" 
+                    />
+                  </FormControl>
+                  <AnimatePresence>
+                    <FormMessage className="text-xs sm:text-sm" />
+                  </AnimatePresence>
+                </FormItem>
+              )}
+            />
+            <motion.div 
+              layout 
+              transition={{ duration: 0.1 }}
+              className="pt-1 sm:pt-2"
+            >
+              <Button 
+                disabled={isLoading} 
+                type="submit"
+                className="w-full h-9 sm:h-10 text-sm sm:text-base"
+              >
+                {isLoading ? "Authenticating..." : "Login"}
+              </Button>
+            </motion.div>
+          </motion.form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }
