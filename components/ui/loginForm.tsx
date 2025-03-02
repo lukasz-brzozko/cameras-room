@@ -159,27 +159,7 @@ export function LoginForm() {
 
   return (
     <section className="flex min-h-[calc(100vh-2rem)] items-center justify-center">
-      {!mounted ? (
-        <motion.div
-          animate={{ opacity: 1 }}
-          className="flex items-center justify-center"
-          initial={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <motion.div
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              duration: 1,
-              ease: "linear",
-              repeat: Infinity,
-            }}
-          >
-            <LoadingSpinner className="h-8 w-8 text-primary dark:text-secondary [&>path]:opacity-75" />
-          </motion.div>
-        </motion.div>
-      ) : (
+      {mounted && (
         <Card className="w-[95%] max-w-[380px] sm:w-[380px] dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader className="space-y-1 p-4 sm:p-6">
             <CardTitle className="flex items-center justify-center gap-2 text-center text-xl sm:text-2xl dark:text-zinc-200">
