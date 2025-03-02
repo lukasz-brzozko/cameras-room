@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from "./form";
 import { Input } from "./input";
+import { LoadingSpinner } from "./loadingSpinner";
 import { login } from "@/lib/actions/auth";
 import { LoginFormData, LoginFormSchema } from "@/lib/definitions";
 
@@ -158,66 +159,93 @@ export function LoginForm() {
 
   return (
     <section className="flex min-h-[calc(100vh-2rem)] items-center justify-center">
-      <Card className="w-[95%] max-w-[380px] sm:w-[380px] dark:border-zinc-800 dark:bg-zinc-950">
-        <CardHeader className="space-y-1 p-4 sm:p-6">
-          <CardTitle className="flex items-center justify-center gap-2 text-center text-xl sm:text-2xl dark:text-zinc-200">
-            <LockKeyhole className="h-5 w-5 sm:h-6 sm:w-6" />
-            Authentication
-          </CardTitle>
-          <CardDescription className="text-center text-sm sm:text-base dark:text-zinc-400">
-            Enter your password to access the application
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <Form {...form}>
-            <motion.form
-              className="space-y-3 sm:space-y-4"
-              onSubmit={form.handleSubmit(onSubmit)}
-            >
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm sm:text-base dark:text-zinc-200">
-                      Password
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your password"
-                        type="password"
-                        {...field}
-                        className="h-9 text-sm sm:h-10 sm:text-base dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-zinc-500"
-                        disabled={!!(mounted && (isLoading || isBlocked))}
-                      />
-                    </FormControl>
-                    <AnimatePresence>
-                      <FormMessage className="text-xs sm:text-sm" />
-                    </AnimatePresence>
-                  </FormItem>
-                )}
-              />
-              <motion.div
-                layout
-                className="pt-1 sm:pt-2"
-                transition={{ duration: 0.1 }}
+      {!mounted ? (
+        <motion.div
+          animate={{ opacity: 1 }}
+          className="flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            animate={{
+              rotate: 360,
+            }}
+            transition={{
+              duration: 1,
+              ease: "linear",
+              repeat: Infinity,
+            }}
+          >
+            <LoadingSpinner className="h-8 w-8 text-primary dark:text-secondary [&>path]:opacity-75" />
+          </motion.div>
+        </motion.div>
+      ) : (
+        <Card className="w-[95%] max-w-[380px] sm:w-[380px] dark:border-zinc-800 dark:bg-zinc-950">
+          <CardHeader className="space-y-1 p-4 sm:p-6">
+            <CardTitle className="flex items-center justify-center gap-2 text-center text-xl sm:text-2xl dark:text-zinc-200">
+              <LockKeyhole className="h-5 w-5 sm:h-6 sm:w-6" />
+              Authentication
+            </CardTitle>
+            <CardDescription className="text-center text-sm sm:text-base dark:text-zinc-400">
+              Enter your password to access the application
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <Form {...form}>
+              <motion.form
+                className="space-y-3 sm:space-y-4"
+                onSubmit={form.handleSubmit(onSubmit)}
               >
-                <Button
-                  className="h-9 w-full text-sm sm:h-10 sm:text-base dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:bg-zinc-300"
-                  disabled={!!(mounted && (isLoading || isBlocked))}
-                  type="submit"
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm sm:text-base dark:text-zinc-200">
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter your password"
+                          type="password"
+                          {...field}
+                          className="h-9 text-sm sm:h-10 sm:text-base dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                          disabled={!!(isLoading || isBlocked)}
+                        />
+                      </FormControl>
+                      <AnimatePresence>
+                        <FormMessage className="text-xs sm:text-sm" />
+                      </AnimatePresence>
+                    </FormItem>
+                  )}
+                />
+                <motion.div
+                  layout
+                  className="pt-1 sm:pt-2"
+                  transition={{ duration: 0.1 }}
                 >
-                  {isLoading
-                    ? "Authenticating..."
-                    : isBlocked
-                      ? "Temporarily Blocked"
-                      : "Login"}
-                </Button>
-              </motion.div>
-            </motion.form>
-          </Form>
-        </CardContent>
-      </Card>
+                  <Button
+                    className="h-9 w-full text-sm sm:h-10 sm:text-base dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:bg-zinc-300"
+                    disabled={!!(isLoading || isBlocked)}
+                    type="submit"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <LoadingSpinner className="h-4 w-4" />
+                        Authenticating...
+                      </div>
+                    ) : isBlocked ? (
+                      "Temporarily Blocked"
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
+                </motion.div>
+              </motion.form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
     </section>
   );
 }
