@@ -5,14 +5,19 @@ import { createServer } from "node:https";
 import path from "node:path";
 import { PeerServer } from "peer";
 import { Server } from "socket.io";
+
 import { TPeer } from "./app/page.types";
 import { getServerUrls } from "./server.methods";
 
-const { NODE_ENV, HOST, PORT_PEER, PORT_SERVER } = process.env;
+const { HOST, NODE_ENV, PASSWORD, PORT_PEER, PORT_SERVER, SESSION_SECRET } =
+  process.env;
 const dev = NODE_ENV !== "production";
 const hostname = HOST ?? "0.0.0.0";
 const serverPort = Number(PORT_SERVER) || 3000;
 const peerPort = Number(PORT_PEER) || 9000;
+
+if (PASSWORD && !SESSION_SECRET) throw new Error("SESSION_SECRET is required");
+
 const serverUrls = getServerUrls(serverPort);
 
 const app = next({ dev, hostname, port: serverPort });
@@ -25,8 +30,8 @@ app.prepare().then(() => {
   const certPath = path.join(__dirname, "certificates", "localhost.pem");
 
   const options = {
-    key: fs.readFileSync(keyPath, "utf-8"),
     cert: fs.readFileSync(certPath, "utf-8"),
+    key: fs.readFileSync(keyPath, "utf-8"),
   };
 
   const httpsServer = createServer(options, handler);
@@ -56,14 +61,14 @@ app.prepare().then(() => {
   });
 
   const peerServer = PeerServer({
+    corsOptions: {
+      methods: ["GET", "POST"],
+      origin: serverUrls,
+    },
     host: hostname,
     path: "/",
     port: peerPort,
     ssl: options,
-    corsOptions: {
-      origin: serverUrls,
-      methods: ["GET", "POST"],
-    },
   });
 
   httpsServer
