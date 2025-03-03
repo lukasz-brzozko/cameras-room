@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4040:3000"
+      - "9000:9000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT_SERVER=3000
+      - PORT_PEER=9000
+      - SESSION_SECRET=${SESSION_SECRET} # obtain by running `openssl rand -base64 32`
+      - PASSWORD=${PASSWORD}
