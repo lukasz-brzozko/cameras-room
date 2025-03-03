@@ -21,6 +21,9 @@ A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.I
 ### Local Development
 
 1. First, generate SSL certificates for HTTPS:
+   ```bash
+   npm run certificates
+   ```
 2. Generate a secure `SESSION_SECRET`:
 
    ```bash
