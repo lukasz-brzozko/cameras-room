@@ -9,6 +9,7 @@ A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.I
 - Secure HTTPS connections
 - WebRTC peer-to-peer communication
 - Socket.IO for real-time state synchronization
+- Optional password protection
 
 ## Prerequisites
 
@@ -44,7 +45,17 @@ A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.I
    SESSION_SECRET=your_generated_secret_here
    ```
 
-3. Run the application using Docker:
+3. (Optional) Add password protection:
+
+   To enable password protection for the application, add a PASSWORD variable to your `.env` file:
+
+   ```bash
+   PASSWORD=your_chosen_password
+   ```
+
+   If no PASSWORD is set, the application will skip the login page.
+
+4. Run the application using Docker:
 
    ```bash
    # Build and start containers
