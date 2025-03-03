@@ -47,13 +47,13 @@ A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.I
 
 3. (Optional) Add password protection:
 
-   To enable password protection for the application, add a PASSWORD variable to your `.env` file:
+   To enable password protection for the application, add a `PASSWORD` variable to your `.env` file:
 
    ```bash
    PASSWORD=your_chosen_password
    ```
 
-   If no PASSWORD is set, the application will skip the login page.
+   If no `PASSWORD` is set, the application will skip the login page.
 
 4. Run the application using Docker:
 
