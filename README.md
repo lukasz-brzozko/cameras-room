@@ -1,6 +1,6 @@
-# Canera's Room - Video Chat Application
+# Cameras Room - WebRTC Application
 
-A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.IO and TypeScript.
+A real-time application built with Next.js, WebRTC (PeerJS), Socket.IO and TypeScript.
 
 This application allows you to easily use your mobile phone or laptop as a CCTV camera for home monitoring. Thanks to WebRTC technology, you can transform your device into a simple video surveillance system that works in real-time and provides secure connection via HTTPS. An ideal solution for those who want to create their own monitoring system without investing in professional CCTV cameras.
 
