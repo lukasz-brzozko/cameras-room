@@ -2,6 +2,14 @@
 
 A real-time video chat application built with Next.js, WebRTC (PeerJS), Socket.IO and TypeScript.
 
+This application allows you to easily use your mobile phone or laptop as a CCTV camera for home monitoring. Thanks to WebRTC technology, you can transform your device into a simple video surveillance system that works in real-time and provides secure connection via HTTPS. An ideal solution for those who want to create their own monitoring system without investing in professional CCTV cameras.
+
+https://github.com/user-attachments/assets/46f80188-a9f7-4de6-a2b6-f45f1154b0e2
+
+The application includes optional password protection to secure access to your monitoring feed.
+
+<img width="443" height="343" alt="password" src="https://github.com/user-attachments/assets/ff86a937-b8e1-4bc9-a05d-3e734b15ca86" />
+
 ## Features
 
 - Real-time video chat capabilities
