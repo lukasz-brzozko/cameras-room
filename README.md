@@ -1,7 +1,5 @@
 # Cameras Room - WebRTC Application
 
-A real-time application built with Next.js, WebRTC (PeerJS), Socket.IO and TypeScript.
-
 This application allows you to easily use your mobile phone or laptop as a CCTV camera for home monitoring. Thanks to WebRTC technology, you can transform your device into a simple video surveillance system that works in real-time and provides secure connection via HTTPS. An ideal solution for those who want to create their own monitoring system without investing in professional CCTV cameras.
 
 https://github.com/user-attachments/assets/46f80188-a9f7-4de6-a2b6-f45f1154b0e2
